@@ -1,6 +1,7 @@
 # Tugas Praktikum Minggu 1: Profil Mahasiswa
 
 **Nama:** Faatihurrizki Prasojo
+
 **NIM:** 244107020142
 
 ## Kendala Setup yang Ditemui
@@ -10,7 +11,7 @@ Selama proses instalasi dan menjalankan aplikasi pertama kali, saya menemui dua 
 
 ## Screenshot Hasil
 Hasil Awal
-![Hasil Profil](./screenshots/hasil_profil.jpeg)
+![Hasil Profil](./screenshot/hasil_profil.jpeg)
 
 Mini Assignment
-![Hasil Profil](./screenshots/mini_assignment.jpeg)
+![Hasil Profil](./screenshot/mini_assignment.jpeg)
