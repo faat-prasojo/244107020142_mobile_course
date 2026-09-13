@@ -15,7 +15,7 @@ Berikut adalah daftar materi dan tugas yang dikerjakan setiap minggunya. Klik ta
 | :---: | :--- | :---: | :--- |
 | **01** | Pengenalan Ekosistem & Flutter Refresh | ✅ Selesai | [Buka Tugas](./01-week-1-mobile-development-ecosystem-flutter-refresh) |
 | **02** | Declarative UI & Responsive Design | ✅ Selesai | [Buka Tugas](./02_week_2_declarative_ui_responsive_design/responsive_dashboard) | 
-| **03** | Navigation & State Management | ✅ | [Buka Tugas](./03-week-3-navigation-state-management) |
+| **03** | Navigation & State Management | ✅ Selesai | [Buka Tugas](./03_minggu_3_navigation_state_management) |
 | **04** | Form & Data Input | ⏳ Pending | - |
 | **05** | API & Asynchronous Programming | ⏳ Pending | - |
 | **06** | Local Storage (SQLite/Shared Preferences) | ⏳ Pending | - |
