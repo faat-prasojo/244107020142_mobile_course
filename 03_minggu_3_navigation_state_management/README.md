@@ -37,27 +37,27 @@ flutter test
 ## Dokumentasi Aplikasi multi-page dengan GoRouter
 | Home | multi-page |
 | :---: | :---: |
-| <img src="./screenshot/sample1.jpeg" width="400"> | <img src="./screenshot/sample2.jpeg" width="400"> |
+| <img src="./Screenshot/sample1.jpeg" width="400"> | <img src="./Screenshot/sample2.jpeg" width="400"> |
 
 ## Dokumentasi Aplikasi ToDo dengan Riverpod
 
 | ToDo | Tambah Data |
 | :---: | :---: |
-| <img src="./screenshot/sample3.jpeg" width="400"> | <img src="./screenshot/sample4.jpeg" width="400"> |
+| <img src="./Screenshot/sample3.jpeg" width="400"> | <img src="./Screenshot/sample4.jpeg" width="400"> |
 
 ## Dokumentasi AsyncValue
 | AsyncValue | 
 | :---: | 
-| <img src="./screenshot/sample8.jpeg" width="400"> |
+| <img src="./Screenshot/sample8.jpeg" width="400"> |
 
 | analyze & test | 
 | :---: | 
-| <img src="./screenshot/sample9.jpeg" width="600"> |
+| <img src="./Screenshot/sample9.jpeg" width="600"> |
 
 ## Dokumentasi AI Challenge
 | Gemini AI | 
 | :---: | 
-| <img src="./screenshot/sample10.jpeg" width="700"> |
+| <img src="./Screenshot/sample10.jpeg" width="700"> |
 
 File Provider `lib/providers/stats_provider.dart`
 
@@ -210,11 +210,11 @@ void main() {
 
 | Page - 1 | Page - 2 |
 | :---: | :---: |
-| <img src="./screenshot/sample11.jpeg" width="400"> | <img src="./screenshot/sample12.jpeg" width="400"> |
+| <img src="./Screenshot/sample11.jpeg" width="400"> | <img src="./Screenshot/sample12.jpeg" width="400"> |
 
 | Testing | 
 | :---: | 
-| <img src="./screenshot/sample13.jpeg" width="600"> |
+| <img src="./Screenshot/sample13.jpeg" width="600"> |
 
 
 ## Refleksi
