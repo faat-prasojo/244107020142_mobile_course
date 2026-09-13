@@ -208,7 +208,7 @@ void main() {
 
 ## Dokumentasi Refactoring dan testing
 
-| Page 1 | Page 2 |
+| Page - 1 | Page - 2 |
 | :---: | :---: |
 | <img src="./screenshot/sample11.jpeg" width="400"> | <img src="./screenshot/sample12.jpeg" width="400"> |
 
