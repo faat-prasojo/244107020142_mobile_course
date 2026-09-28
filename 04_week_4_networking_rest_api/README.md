@@ -44,7 +44,7 @@ Di Dart, JSON mentah (`Map<String, dynamic>`) harus dipetakan ke class model aga
 ## Dokumentasi AI Challenge
 | Gemini AI | 
 | :---: | 
-| <img src="./Screenshot/sample10.png" width="700"> |
+| <img src="./Screenshot/sample6.png" width="700"> |
 
 Model: Comment (`lib/data/models/comment.dart`)
 

@@ -11,12 +11,15 @@ final postsProvider = FutureProvider<List<Post>>((ref) async {
   return repository.fetchPosts();
 });
 
-// Helper untuk membaca posts sekali
+final postDetailProvider = FutureProvider.family<Post, int>((ref, id) async {
+  final repository = ref.watch(postRepositoryProvider);
+  return repository.fetchPostById(id);
+});
+
 Future<List<Post>> readPostsOnce(ProviderContainer container) async {
   return container.read(postsProvider.future);
 }
 
-// Helper untuk membaca error secara aman tanpa mencederai listener container
 Future<Object?> readPostsErrorOnce(ProviderContainer container) async {
   try {
     return await container.read(postRepositoryProvider).fetchPosts();
