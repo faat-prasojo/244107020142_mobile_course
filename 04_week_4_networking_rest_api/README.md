@@ -227,11 +227,18 @@ void main() {
 
 
 ## Refleksi
- - **Alasan Larangan Pemanggilan Dio Secara Langsung dari UI**:
-  Memanggil Dio langsung di dalam widget akan merusak prinsip Separation of Concerns (pemisahan tanggung jawab). Jika aturan ini dilanggar, UI menjadi terikat erat (tightly coupled) dengan Detail REST API. Akibatnya, kode sulit diuji (unit test) tanpa melakukan network call sungguhan, duplikasi logika jaringan terjadi di banyak widget, dan perubahan endpoint atau header API di kemudian hari akan memaksa kita merombak banyak file UI sekaligus.   
+- **Larangan memanggil Dio langsung dari UI**: 
+  kalau widget memanggil Dio secara langsung, prinsip Separation of Concerns ikut rusak. UI jadi tightly coupled dengan detail REST API. Kodenya susah di-unit test karena setiap test harus melakukan network call sungguhan. Logika jaringan yang sama juga terduplikasi di banyak widget, dan begitu endpoint atau header API berubah, kita harus mengedit banyak file UI sekaligus.   
 
-- `context.go` vs `context.push`: `context.go` menggantikan rute saat ini (untuk navigasi utama seperti menu bawah), sedangkan `context.push` menumpuk rute baru di atasnya (untuk halaman detail yang butuh tombol kembali).
+- **Pagination client-side vs server-side (`_page` / `_limit`)**: 
+  client-side pagination cukup selama datanya sedikit, ringan, dan tidak diperkirakan membesar dalam jangka panjang. Kalau dataset-nya sangat besar (ratusan sampai ribuan baris), server-side pagination wajib dipakai. Dengan begitu kuota internet tidak terbuang, memori perangkat tidak terpakai berlebihan, dan waktu load aplikasi tetap cepat.
 
-- Keunggulan `AsyncValue`: Mencegah bug inkonsistensi state (misal `isLoading` dan `hasError` aktif bersamaan) karena menggabungkan status loading, error, dan data ke dalam satu objek yang mutually exclusive.
+- **Konversi `exception` ke ``AsyncError`` dan try/catch eksplisit**: 
+  di Riverpod (`FutureProvider` atau `AsyncNotifier`), `exception` atau error unhandled dari layer repository/data otomatis ditangkap Riverpod dan dibungkus jadi state `AsyncError`. Karena itu UI cukup menangani error lewat .when(error: ...) tanpa try/catch di setiap widget. Tapi try/catch eksplisit tetap diperlukan pada aksi imperatif pengguna, misalnya menekan tombol submit form, menghapus data, atau infinite scroll pagination. Di situ kita perlu memberi feedback langsung berupa `SnackBar` atau mempertahankan state lokal tanpa merusak tampilan utama.
 
-- Perbaikan pada Hasil AI: Memperbaiki penamaan widget navigasi (`NavigationDestination`), menghapus blok `default` yang redundan pada switch, serta menyesuaikan pumpAndSettle pada widget test agar animasi dialog tertutup selesai dengan sempurna.
+##### Perbaikan pada hasil generasi AI dan alasannya. Beberapa penyesuaian yang dilakukan:
+1. Konfigurasi provider: `postRepositoryProvider` di `providers.dart` sekarang me-return instance `PostRepository(createDio())`. Sebelumnya provider ini melempar `UnimplementedError`, dan itu yang membuat aplikasi loading terus-menerus.
+
+2. Defensive parsing pada model: `Comment.fromJson` sekarang melakukan safe parsing/type checking pada field bertipe dinamis, misalnya dengan mengonversi tipe `num` atau `String` ke safe fallback.
+
+3. Pengujian tanpa jaringan (mocking): `post_test.dart` dan `widget_test.dart` memakai repository tiruan (`FakePostRepository` / `MockCommentRepository`). Hasilnya tidak ada lagi error pending timers, dan `flutter test` tidak butuh koneksi internet.
