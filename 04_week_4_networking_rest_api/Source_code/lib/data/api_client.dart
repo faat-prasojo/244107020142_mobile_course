@@ -4,6 +4,7 @@ Dio createDio() {
   final dio = Dio(
     BaseOptions(
       baseUrl: 'https://jsonplaceholder.typicode.com',
+      // baseUrl: 'https://jsonplaceholder.typicode.invalid_url_test', (baseURL Salah)
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Accept': 'application/json'},
