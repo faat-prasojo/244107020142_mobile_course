@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/network_errors.dart';
 import '../data/paged_posts.dart';
-import '../data/providers/providers.dart';
 
 class PagedPostPage extends ConsumerStatefulWidget {
   const PagedPostPage({super.key});
 
   @override
-  ConsumerState<PagedPostPage> createState() =>
-      _PagedPostPageState();
+  ConsumerState<PagedPostPage> createState() => _PagedPostPageState();
 }
 
-class _PagedPostPageState
-    extends ConsumerState<PagedPostPage> {
+class _PagedPostPageState extends ConsumerState<PagedPostPage> {
   final _controller = ScrollController();
 
   @override
@@ -65,8 +63,7 @@ class _PagedPostPageState
             if (!state.hasMore) {
               return const Padding(
                 padding: EdgeInsets.all(16),
-                child:
-                    Center(child: Text('Semua data termuat.')),
+                child: Center(child: Text('Semua data termuat.')),
               );
             }
             return const Padding(
@@ -76,8 +73,7 @@ class _PagedPostPageState
           }
           final post = state.items[index];
           return ListTile(
-            leading: CircleAvatar(
-                child: Text(post.id.toString())),
+            leading: CircleAvatar(child: Text(post.id.toString())),
             title: Text(post.title,
                 maxLines: 1, overflow: TextOverflow.ellipsis),
           );
