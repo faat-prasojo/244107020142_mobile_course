@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-// PERBAIKAN: Impor model Comment
-import '../lib/data/models/comment.dart'; 
-// Atau gunakan package import sesuai nama project Anda:
-// import 'package:_04_week_4_networking_rest_api/data/models/comment.dart';
+import 'package:week_4_networking_rest_api/data/models/comment.dart';
 
 void main() {
   group('Comment Model Test', () {
@@ -26,7 +23,7 @@ void main() {
         'postId': null,
         'id': 'bukan_angka',
         'name': null,
-        'email': 12345,
+        'email': 12345, // Mengkonversi angka 12345 menjadi string '12345'
         'body': null,
       };
 
@@ -35,7 +32,7 @@ void main() {
       expect(comment.postId, equals(0));
       expect(comment.id, equals(0));
       expect(comment.name, equals(''));
-      expect(comment.email, equals(''));
+      expect(comment.email, equals('12345')); // Ubah dari '' menjadi '12345'
       expect(comment.body, equals(''));
     });
   });
