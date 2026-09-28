@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
         colorSchemeSeed: Colors.indigo,
         useMaterial3: true,
       ),
-      home: const CommentListPage(postId: 2),
+      home: const CommentListPage(postId: 1),
     );
   }
 }
