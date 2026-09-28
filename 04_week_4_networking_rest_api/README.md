@@ -44,7 +44,7 @@ Di Dart, JSON mentah (`Map<String, dynamic>`) harus dipetakan ke class model aga
 ## Dokumentasi AI Challenge
 | Gemini AI | 
 | :---: | 
-| <img src="./Screenshot/sample6.png" width="700"> |
+| <img src="./Screenshot/sample7.png" width="700"> |
 
 Model: Comment (`lib/data/models/comment.dart`)
 
@@ -217,17 +217,18 @@ void main() {
 
 ## Dokumentasi Refactoring dan testing
 
-| Page - 1 | Page - 2 |
+| Home | saat di-klik  |
 | :---: | :---: |
-| <img src="./Screenshot/sample11.png" width="400"> | <img src="./Screenshot/sample12.png" width="400"> |
+| <img src="./Screenshot/sample8.png" width="400"> | <img src="./Screenshot/sample9.png" width="400"> |
 
 | Testing | 
 | :---: | 
-| <img src="./Screenshot/sample13.png" width="600"> |
+| <img src="./Screenshot/sample5.png" width="600"> |
 
 
 ## Refleksi
- - `setState` vs Riverpod: Gunakan `setState` untuk state lokal widget tunggal yang sederhana. Naik ke Riverpod saat state perlu dibagi ke banyak widget atau diakses secara global.
+ - **Alasan Larangan Pemanggilan Dio Secara Langsung dari UI**:
+  Memanggil Dio langsung di dalam widget akan merusak prinsip Separation of Concerns (pemisahan tanggung jawab). Jika aturan ini dilanggar, UI menjadi terikat erat (tightly coupled) dengan Detail REST API. Akibatnya, kode sulit diuji (unit test) tanpa melakukan network call sungguhan, duplikasi logika jaringan terjadi di banyak widget, dan perubahan endpoint atau header API di kemudian hari akan memaksa kita merombak banyak file UI sekaligus.   
 
 - `context.go` vs `context.push`: `context.go` menggantikan rute saat ini (untuk navigasi utama seperti menu bawah), sedangkan `context.push` menumpuk rute baru di atasnya (untuk halaman detail yang butuh tombol kembali).
 
