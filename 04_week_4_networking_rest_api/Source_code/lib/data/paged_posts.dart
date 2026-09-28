@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models/post.dart';
-import 'providers.dart';
+import 'providers/providers.dart';
 
 class PagedPostsState {
   const PagedPostsState({
