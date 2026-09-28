@@ -6,8 +6,10 @@ void main() => runApp(const ProviderScope(child: MyApp()));
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) => MaterialApp(
+        debugShowCheckedModeBanner: false, 
         title: 'Week 4 - REST API',
         theme: ThemeData(
             colorSchemeSeed: Colors.indigo, useMaterial3: true),
