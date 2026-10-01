@@ -1,17 +1,244 @@
-# _05_week_5_local_storage_offline_first
+# Minggu 5 - Local Storage Offline First
 
-A new Flutter project.
+**Nama:** Faatihurrizki Prasojo
 
-## Getting Started
+**NIM:** 244107020142
 
-This project is a starting point for a Flutter application.
+## Tujuan 
+- Menjelaskan perbedaan penyimpanan key-value, relasional, dan NoSQL di perangkat;
+- Menyimpan preferensi sederhana (tema, terakhir dibuka) dengan SharedPreferences;
+- Menerapkan CRUD catatan dengan SQLite (sqflite) melalui repository lokal;
+- Menerapkan pola offline-first: cache-first read, dirty flag, dan antrean sinkronisasi;
+- Menampilkan state loading, error, empty, dan success untuk data lokal dengan Riverpod;
+- Menguji repository lokal dengan repository palsu (tanpa database sungguhan).
 
-A few resources to get you started if this is your first Flutter project:
+#### HTTP dan REST API
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+| Method | Makna pada koleksi resource | Contoh |
+| :--- | :--- | :--- |
+| GET | Membaca data (tanpa efek samping). | `GET /posts` , `GET /posts/1` |;
+| POST | Membuat resource baru. | `POST /posts` |
+| PUT / PATCH | Mengganti / memperbarui sebagian resource. | `PUT /posts/1` |
+| DELETE | Menghapus resource. | `DELETE /posts/1` |
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+#### JSON dan model Dart
+JSON (JavaScript Object Notation) adalah format tukar data standar API. Contoh respons `GET https://jsonplaceholder.typicode.com/posts/1`:
+
+```
+{
+  "userId": 1,
+  "id": 1,
+  "title": "sunt aut facere...",
+  "body": "quia et suscipit..."
+}
+```
+Di Dart, JSON mentah (`Map<String, dynamic>`) harus dipetakan ke class model agar aman terhadap null dan kesalahan ketik. Pola manual `fromJson`/`toJson` cukup untuk codelab ini; untuk project besar gunakan code generator (`json_serializable` / `freezed`).
+
+
+## Dokumentasi Provider dan error handling
+| Home | No Internet | baseUrl Salah |
+| :---: | :---: |:---: |
+| <img src="./Screenshot/sample1.png" width="400"> | <img src="./Screenshot/sample2.png" width="400"> | <img src="./Screenshot/sample3.png" width="400"> |
+
+
+## Dokumentasi AI Challenge
+| Gemini AI | 
+| :---: | 
+| <img src="./Screenshot/sample7.png" width="700"> |
+
+Model: Comment (`lib/data/models/comment.dart`)
+
+```
+class Comment {
+  final int postId;
+  final int id;
+  final String name;
+  final String email;
+  final String body;
+
+  Comment({
+    required this.postId,
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.body,
+  });
+
+  factory Comment.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic value) {
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    String parseString(dynamic value) {
+      if (value is String) return value;
+      return value?.toString() ?? '';
+    }
+
+    return Comment(
+      postId: parseInt(json['postId']),
+      id: parseInt(json['id']),
+      name: parseString(json['name']),
+      email: parseString(json['email']),
+      body: parseString(json['body']),
+    );
+  }
+}
+```
+
+Repository: `CommentRepository` (`lib/data/repositories/comment_repository.dart`)
+```
+import 'package:dio/dio.dart';
+import '../models/comment.dart';
+
+class CommentRepository {
+  final Dio _dio;
+
+  // Menerima dependency Dio melalui constructor
+  CommentRepository(this._dio);
+
+  // Method untuk mengambil daftar komentar berdasarkan postId
+  Future<List<Comment>> fetchComments(int postId) async {
+    final response = await _dio.get<List>(
+      '/comments',
+      queryParameters: {'postId': postId},
+      // Mengatur opsi timeout khusus untuk request ini selama 10 detik
+      options: Options(
+        sendTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+
+    final data = response.data ?? [];
+
+    // Mapping response data JSON menjadi List<Comment>
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(Comment.fromJson)
+        .toList();
+  }
+}
+```
+
+Error Helper & Providers (`lib/data/providers/comment_providers.dart`)
+```
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/comment.dart';
+import '../repositories/comment_repository.dart';
+
+final dioProvider = Provider<Dio>((ref) {
+  return Dio(
+    BaseOptions(
+      baseUrl: 'https://jsonplaceholder.typicode.com',
+      connectTimeout: const Duration(seconds: 10),
+    ),
+  );
+});
+
+final commentRepositoryProvider = Provider<CommentRepository>((ref) {
+  return CommentRepository(ref.watch(dioProvider));
+});
+
+String getFriendlyErrorMessage(Object error) {
+  if (error is DioException) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Koneksi lambat. Silakan periksa jaringan Anda dan coba lagi.';
+      case DioExceptionType.connectionError:
+        return 'Gagal terhubung ke server. Pastikan koneksi internet Anda aktif.';
+      case DioExceptionType.badResponse:
+        final statusCode = error.response?.statusCode;
+        if (statusCode == 404) {
+          return 'Data komentar tidak ditemukan (404).';
+        } else if (statusCode == 500) {
+          return 'Terjadi masalah pada server (500). Silakan coba lagi nanti.';
+        }
+        return 'Terjadi kesalahan pada server ($statusCode).';
+      default:
+        return 'Terjadi kesalahan jaringan yang tidak terduga.';
+    }
+  }
+  return 'Terjadi kesalahan: ${error.toString()}';
+}
+
+final commentListProvider =
+    FutureProvider.family<List<Comment>, int>((ref, postId) async {
+  final repo = ref.watch(commentRepositoryProvider);
+  return repo.fetchComments(postId);
+});
+```
+
+Unit Test: `Comment.fromJson` (`test/comment_test.dart`)
+```
+import 'package:flutter_test/flutter_test.dart';
+import 'package:week_4_networking_rest_api/data/models/comment.dart';
+
+void main() {
+  group('Comment Model Test', () {
+    test('fromJson harus mengembalikan instance Comment dengan nilai default saat field hilang/null', () {
+      final Map<String, dynamic> incompleteJson = {
+        'id': 10,
+        'name': 'John Doe',
+      };
+
+      final comment = Comment.fromJson(incompleteJson);
+
+      expect(comment.id, equals(10));
+      expect(comment.name, equals('John Doe'));
+      expect(comment.postId, equals(0));
+      expect(comment.email, equals(''));
+      expect(comment.body, equals(''));
+    });
+
+    test('Edge Case: fromJson harus menangani objek JSON yang seluruh nilainya null/salah tipe', () {
+      final Map<String, dynamic> corruptedJson = {
+        'postId': null,
+        'id': 'bukan_angka',
+        'name': null,
+        'email': 12345, // Mengkonversi angka 12345 menjadi string '12345'
+        'body': null,
+      };
+
+      final comment = Comment.fromJson(corruptedJson);
+
+      expect(comment.postId, equals(0));
+      expect(comment.id, equals(0));
+      expect(comment.name, equals(''));
+      expect(comment.email, equals('12345')); // Ubah dari '' menjadi '12345'
+      expect(comment.body, equals(''));
+    });
+  });
+}
+```
+
+## Dokumentasi Refactoring dan testing
+
+| Home | saat di-klik  |
+| :---: | :---: |
+| <img src="./Screenshot/sample8.png" width="400"> | <img src="./Screenshot/sample9.png" width="400"> |
+
+| Testing | 
+| :---: | 
+| <img src="./Screenshot/sample5.png" width="600"> |
+
+
+## Refleksi
+- **Larangan memanggil Dio langsung dari UI**: 
+  kalau widget memanggil Dio secara langsung, prinsip Separation of Concerns ikut rusak. UI jadi tightly coupled dengan detail REST API. Kodenya susah di-unit test karena setiap test harus melakukan network call sungguhan. Logika jaringan yang sama juga terduplikasi di banyak widget, dan begitu endpoint atau header API berubah, kita harus mengedit banyak file UI sekaligus.   
+
+- **Pagination client-side vs server-side (`_page` / `_limit`)**: 
+  client-side pagination cukup selama datanya sedikit, ringan, dan tidak diperkirakan membesar dalam jangka panjang. Kalau dataset-nya sangat besar (ratusan sampai ribuan baris), server-side pagination wajib dipakai. Dengan begitu kuota internet tidak terbuang, memori perangkat tidak terpakai berlebihan, dan waktu load aplikasi tetap cepat.
+
+- **Konversi `exception` ke ``AsyncError`` dan try/catch eksplisit**: 
+  di Riverpod (`FutureProvider` atau `AsyncNotifier`), `exception` atau error unhandled dari layer repository/data otomatis ditangkap Riverpod dan dibungkus jadi state `AsyncError`. Karena itu UI cukup menangani error lewat .when(error: ...) tanpa try/catch di setiap widget. Tapi try/catch eksplisit tetap diperlukan pada aksi imperatif pengguna, misalnya menekan tombol submit form, menghapus data, atau infinite scroll pagination. Di situ kita perlu memberi feedback langsung berupa `SnackBar` atau mempertahankan state lokal tanpa merusak tampilan utama.
+
+##### Perbaikan pada hasil generasi AI dan alasannya. Beberapa penyesuaian yang dilakukan:
+1. Konfigurasi provider: `postRepositoryProvider` di `providers.dart` sekarang me-return instance `PostRepository(createDio())`. Sebelumnya provider ini melempar `UnimplementedError`, dan itu yang membuat aplikasi loading terus-menerus.
+
+2. Defensive parsing pada model: `Comment.fromJson` sekarang melakukan safe parsing/type checking pada field bertipe dinamis, misalnya dengan mengonversi tipe `num` atau `String` ke safe fallback.
+
+3. Pengujian tanpa jaringan (mocking): `post_test.dart` dan `widget_test.dart` memakai repository tiruan (`FakePostRepository` / `MockCommentRepository`). Hasilnya tidak ada lagi error pending timers, dan `flutter test` tidak butuh koneksi internet.
