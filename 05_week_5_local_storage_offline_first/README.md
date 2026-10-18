@@ -12,33 +12,10 @@
 - Menampilkan state loading, error, empty, dan success untuk data lokal dengan Riverpod;
 - Menguji repository lokal dengan repository palsu (tanpa database sungguhan).
 
-#### HTTP dan REST API
-
-| Method | Makna pada koleksi resource | Contoh |
-| :--- | :--- | :--- |
-| GET | Membaca data (tanpa efek samping). | `GET /posts` , `GET /posts/1` |;
-| POST | Membuat resource baru. | `POST /posts` |
-| PUT / PATCH | Mengganti / memperbarui sebagian resource. | `PUT /posts/1` |
-| DELETE | Menghapus resource. | `DELETE /posts/1` |
-
-#### JSON dan model Dart
-JSON (JavaScript Object Notation) adalah format tukar data standar API. Contoh respons `GET https://jsonplaceholder.typicode.com/posts/1`:
-
-```
-{
-  "userId": 1,
-  "id": 1,
-  "title": "sunt aut facere...",
-  "body": "quia et suscipit..."
-}
-```
-Di Dart, JSON mentah (`Map<String, dynamic>`) harus dipetakan ke class model agar aman terhadap null dan kesalahan ketik. Pola manual `fromJson`/`toJson` cukup untuk codelab ini; untuk project besar gunakan code generator (`json_serializable` / `freezed`).
-
-
-## Dokumentasi Provider dan error handling
-| Home | No Internet | baseUrl Salah |
+#### Dokumentasi Praktikum
+| Home | No Internet | Dark Mode |
 | :---: | :---: |:---: |
-| <img src="./Screenshot/sample1.png" width="400"> | <img src="./Screenshot/sample2.png" width="400"> | <img src="./Screenshot/sample3.png" width="400"> |
+| <img src="./Screenshot/sample1.jpeg" width="400"> | <img src="./Screenshot/sample2.jpeg" width="400"> | <img src="./Screenshot/sample6.jpeg" width="400"> |
 
 
 ## AI Challenge (Claude AI)
@@ -204,33 +181,26 @@ Dua catatan untuk migrasi ini. Milidetik hilang karena `strftime('%s')` hanya pr
     - Alasan Penolakan Drift: Terlalu banyak kerumitan penyiapan (kebutuhan codegen) hanya untuk mengelola satu tabel tanpa relasi.
     - Alasan Penolakan Hive: Hive hanya memuat kotak data di memori tanpa fungsi query bawaan, sehingga pengurutan dan pencarian antrean dirty harus ditulis dan diproses secara manual oleh pengembang.
 
-
-
-
-## Dokumentasi Refactoring dan testing
-
-| Home | saat di-klik  |
-| :---: | :---: |
-| <img src="./Screenshot/sample8.png" width="400"> | <img src="./Screenshot/sample9.png" width="400"> |
-
-| Testing | 
-| :---: | 
-| <img src="./Screenshot/sample5.png" width="600"> |
-
-
 ## Refleksi
 - **Larangan memanggil Dio langsung dari UI**: 
   kalau widget memanggil Dio secara langsung, prinsip Separation of Concerns ikut rusak. UI jadi tightly coupled dengan detail REST API. Kodenya susah di-unit test karena setiap test harus melakukan network call sungguhan. Logika jaringan yang sama juga terduplikasi di banyak widget, dan begitu endpoint atau header API berubah, kita harus mengedit banyak file UI sekaligus.   
 
 - **Pagination client-side vs server-side (`_page` / `_limit`)**: 
-  client-side pagination cukup selama datanya sedikit, ringan, dan tidak diperkirakan membesar dalam jangka panjang. Kalau dataset-nya sangat besar (ratusan sampai ribuan baris), server-side pagination wajib dipakai. Dengan begitu kuota internet tidak terbuang, memori perangkat tidak terpakai berlebihan, dan waktu load aplikasi tetap cepat.
+  client-side pagination cukup selama datanya sedikit, ringan, dan tidak diperkirakan membesar dalam jangka panjang. Kalau dataset-nya sangat besar (ratusan sampai ribuan baris), server-side pagination wajib dipakai. Dengan begitu kuota internet tidak terbuang, memori perangkat tidak terpakai berlebihan, dan flutter pub getwaktu load aplikasi tetap cepat.
 
 - **Konversi `exception` ke ``AsyncError`` dan try/catch eksplisit**: 
   di Riverpod (`FutureProvider` atau `AsyncNotifier`), `exception` atau error unhandled dari layer repository/data otomatis ditangkap Riverpod dan dibungkus jadi state `AsyncError`. Karena itu UI cukup menangani error lewat .when(error: ...) tanpa try/catch di setiap widget. Tapi try/catch eksplisit tetap diperlukan pada aksi imperatif pengguna, misalnya menekan tombol submit form, menghapus data, atau infinite scroll pagination. Di situ kita perlu memberi feedback langsung berupa `SnackBar` atau mempertahankan state lokal tanpa merusak tampilan utama.
 
 ##### Perbaikan pada hasil generasi AI dan alasannya. Beberapa penyesuaian yang dilakukan:
-1. Konfigurasi provider: `postRepositoryProvider` di `providers.dart` sekarang me-return instance `PostRepository(createDio())`. Sebelumnya provider ini melempar `UnimplementedError`, dan itu yang membuat aplikasi loading terus-menerus.
+1. Mengapa daftar catatan tidak boleh disimpan di SharedPreferences? Apa yang rusak jika aturan ini dilanggar?
+SharedPreferences bukan untuk data kompleks: Hanya cocok untuk key-value kecil. Menyimpan daftar catatan (via JSON) membuat performa lambat (harus read/write keseluruhan tiap ada 1 perubahan), rawan bentrok/hilang data (lost update) karena tidak ada transaksi, dan tidak bisa di-query (seperti filter data dirty).
 
-2. Defensive parsing pada model: `Comment.fromJson` sekarang melakukan safe parsing/type checking pada field bertipe dinamis, misalnya dengan mengonversi tipe `num` atau `String` ke safe fallback.
+2. Kapan cache-first cukup, dan kapan Anda membutuhkan strategi lain (misalnya network-first untuk data harga real-time)?
+  Cukup untuk data yang berubah pelan dan tidak merugikan kalau telat, seperti daftar posts atau artikel. Untuk data yang kalau basi bisa menyesatkan, seperti harga real-time, saldo, atau stok, saya pakai network-first dengan timeout pendek, dan cache hanya jadi fallback yang diberi label waktu pembaruan.
 
-3. Pengujian tanpa jaringan (mocking): `post_test.dart` dan `widget_test.dart` memakai repository tiruan (`FakePostRepository` / `MockCommentRepository`). Hasilnya tidak ada lagi error pending timers, dan `flutter test` tidak butuh koneksi internet.
+3. Bagaimana dirty flag berubah menjadi antrean sync tanpa memblokir UI? Kapan antrean terpisah (tabel outbox) menjadi perlu?
+  Setiap tulis lokal menyetel `dirty = 1` dalam statement yang sama dengan datanya. Baris dengan flag itu jadi antrean FIFO lewat `fetchDirty()` yang diurutkan `updated_at ASC`. UI tidak terblokir karena `syncNotes` berjalan sebagai `Future`, dan `markSynced` hanya membersihkan flag bila `updated_at`belum berubah. Outbox perlu ketika flag tidak cukup: untuk operasi hapus (di kode saya `deleteNote` masih hard delete), operasi berurutan pada baris yang sama, atau retry dengan hitungan percobaan dan pesan error.
+
+4. Bagian mana dari rekomendasi AI yang Anda tolak, dan mengapa?
+Referensi pendukung
+  Saya menolak `markAllSynced()` karena menyetel semua `dirty = 0` sekaligus, sehingga edit yang terjadi saat upload ikut kehilangan flag-nya. Saya memakai `markSynced` per item dengan syarat updated_at sama. Saya juga menolak `ref.invalidate` di dalam refresh latar belakang karena memicu `build()` berulang tanpa akhir.
