@@ -17,7 +17,7 @@ Berikut adalah daftar materi dan tugas yang dikerjakan setiap minggunya. Klik ta
 | **02** | Declarative UI & Responsive Design | ✅ Selesai | [Buka Tugas](./02_week_2_declarative_ui_responsive_design/responsive_dashboard) | 
 | **03** | Navigation & State Management | ✅ Selesai | [Buka Tugas](./03_minggu_3_navigation_state_management) |
 | **04** | Networking & REST API | ✅ Selesai | [Buka Tugas](./04_week_4_networking_rest_api) |
-| **05** | API & Asynchronous Programming | ⏳ Pending | - |
+| **05** | API & Asynchronous Programming | ✅ Selesai | [Buka Tugas](./05_week_5_local_storage_offline_first) |
 | **06** | Local Storage (SQLite/Shared Preferences) | ⏳ Pending | - |
 | **07** | UTS Project | ⏳ Pending | - |
 | **08** | Firebase Authentication | ⏳ Pending | - |
