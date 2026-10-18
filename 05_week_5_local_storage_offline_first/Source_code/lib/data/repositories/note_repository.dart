@@ -15,6 +15,15 @@ class NoteRepository {
     return rows.map(Note.fromMap).toList();
   }
 
+  // Dipakai halaman detail (/note/:id). Satu baris dibaca langsung dari SQLite,
+  // jadi tidak bergantung pada state halaman list. null = id tidak ada.
+  Future<Note?> fetchNote(int id) async {
+    final db = await _openDb();
+    final rows =
+        await db.query('notes', where: 'id = ?', whereArgs: [id], limit: 1);
+    return rows.isEmpty ? null : Note.fromMap(rows.first);
+  }
+
   Future<Note> addNote({required String title, String body = ''}) async {
     final db = await _openDb();
     final note = Note(
@@ -106,3 +115,21 @@ final dirtyCountProvider = FutureProvider<int>(
   (ref) => ref.watch(noteRepositoryProvider).countDirty(),
   retry: (retryCount, error) => null,
 );
+
+// Berbeda dari provider di atas, auto-retry Riverpod 3 sengaja dibiarkan aktif
+// di sini. Alasannya: saya belum bisa memastikan family menerima parameter
+// retry di versi yang terpasang. Untuk baca satu baris, retry tidak merugikan.
+final noteByIdProvider = FutureProvider.family<Note?, int>(
+  (ref, id) => ref.watch(noteRepositoryProvider).fetchNote(id),
+);
+
+// Satu tempat untuk menyegarkan semua provider catatan setelah create,
+// update, delete, atau sync. invalidate(noteByIdProvider) membuang semua
+// instance family sekaligus.
+extension NotesRefresh on WidgetRef {
+  void refreshNotes() {
+    invalidate(notesProvider);
+    invalidate(dirtyCountProvider);
+    invalidate(noteByIdProvider);
+  }
+}

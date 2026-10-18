@@ -41,179 +41,171 @@ Di Dart, JSON mentah (`Map<String, dynamic>`) harus dipetakan ke class model aga
 | <img src="./Screenshot/sample1.png" width="400"> | <img src="./Screenshot/sample2.png" width="400"> | <img src="./Screenshot/sample3.png" width="400"> |
 
 
-## Dokumentasi AI Challenge
-| Gemini AI | 
-| :---: | 
-| <img src="./Screenshot/sample7.png" width="700"> |
+## AI Challenge (Claude AI)
+#### Temuan Utama
 
-Model: Comment (`lib/data/models/comment.dart`)
+Proyek ini sudah memakai SharedPreferences dan sqflite, jadi rekomendasi final di bawah sama dengan yang sudah diterapkan. Drift lebih unggul di 4 dari 6 kriteria, tetapi untuk aplikasi sekecil ini keuntungannya tidak menutup biaya setup-nya.
 
-```
-class Comment {
-  final int postId;
-  final int id;
-  final String name;
-  final String email;
-  final String body;
+Ada dua bug di kode yang lebih berbahaya daripada pilihan library:
 
-  Comment({
-    required this.postId,
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.body,
-  });
+1. `deleteNote` memakai hard delete, sehingga catatan yang dihapus tidak pernah masuk antrean sync. Server tidak akan tahu catatan itu sudah dihapus. [Pasti, dari `note_repository.dart`]
+2. `updated_at` disimpan lewat `DateTime.now().toIso8601String()`, yaitu waktu lokal tanpa offset. Urutan catatan dan `markSynced` bisa kacau kalau zona waktu perangkat berubah. [Pasti]
 
-  factory Comment.fromJson(Map<String, dynamic> json) {
-    int parseInt(dynamic value) {
-      if (value is num) return value.toInt();
-      if (value is String) return int.tryParse(value) ?? 0;
-      return 0;
-    }
+Keduanya dibahas lagi di bagian skema.
 
-    String parseString(dynamic value) {
-      if (value is String) return value;
-      return value?.toString() ?? '';
-    }
+#### 1. Perbandingan per Kriteria
 
-    return Comment(
-      postId: parseInt(json['postId']),
-      id: parseInt(json['id']),
-      name: parseString(json['name']),
-      email: parseString(json['email']),
-      body: parseString(json['body']),
-    );
-  }
-}
-```
+| Kriteria | SharedPreferences | Hive (CE) | sqflite | Drift |
+|---|---|---|---|---|
+| Kompleksitas query | Tidak ada. Hanya get/set per key | Ambil per key atau iterasi box. Filter dan sort dilakukan di Dart | Penuh (SQL: WHERE, ORDER, JOIN, agregasi), tapi ditulis sebagai string | Penuh, ditulis lewat Dart API atau SQL yang divalidasi saat generate |
+| Kebutuhan relasi | Tidak bisa | Tidak ada. Relasi harus disimpan manual sebagai key | Foreign key dan JOIN native | Foreign key dan JOIN native, bertipe |
+| Reaktivitas (stream) | Tidak ada bawaan | Ada (`box.watch()`, `listenable()`) | Tidak ada. Harus `invalidate` provider manual, seperti di kodemu | Bawaan (`.watch()`), otomatis emit saat tabel berubah |
+| Type-safety | Hanya int, double, bool, String, List<String> | Bertipe lewat adapter hasil generate | Rendah. `Map<String, Object?>` dan string key (`'updated_at'`), typo baru ketahuan saat runtime | Tinggi. Kolom dan query diperiksa saat compile |
+| Boilerplate | Paling kecil | Sedang (adapter, `build_runner`) | Sedang. `toMap`/`fromMap` ditulis manual | Terbesar di awal (`drift`, `drift_flutter`, `drift_dev`, `build_runner`), paling kecil saat fitur bertambah |
+| Kemudahan testing | Mudah (`setMockInitialValues`) | Mudah (folder temp) | Perlu fake repository (seperti `FakeNoteRepository`) atau `sqflite_common_ffi` | Paling mudah. `NativeDatabase.memory()` menjalankan SQL asli di memori |
 
-Repository: `CommentRepository` (`lib/data/repositories/comment_repository.dart`)
-```
-import 'package:dio/dio.dart';
-import '../models/comment.dart';
+Sumber untuk bagian paket: dokumentasi [shared_preferences](https://pub.dev/documentation/shared_preferences/latest/), halaman [hive_ce](https://pub.dev/packages/hive_ce/versions/2.8.0), dan [Drift getting started](https://drift.simonbinder.eu/getting-started/). Sel lain berasal dari pengetahuan umum tentang paket-paket ini. [Pasti]
 
-class CommentRepository {
-  final Dio _dio;
+#### 2. Rekomendasi Final
 
-  // Menerima dependency Dio melalui constructor
-  CommentRepository(this._dio);
+| Kebutuhan | Pilihan | Alasan | Yang dikorbankan |
+|---|---|---|---|
+| Preferensi (tema, last opened) | SharedPreferences, pakai `SharedPreferencesWithCache` | Datanya hanya 2 key primitif. Tidak butuh query, relasi, atau stream. Versi dengan cache bisa dibaca sinkron setelah init, jadi tema tidak berkedip saat startup | Tidak reaktif, harus dibungkus Notifier. Bukan untuk data penting |
+| Catatan | sqflite | Butuh `ORDER BY`, filter `dirty`, dan transaksi. Pola offline-first di kode (dirty flag, antrean FIFO, `markSynced` dengan `WHERE updated_at = ?`) memang berbasis SQL. Tujuan README juga menyebut sqflite. Tanpa codegen | Tanpa type-safety dan tanpa stream. Mapping manual |
+| Tidak dipilih: Hive | Menyimpan seluruh box di memori, tanpa query dan relasi | Untuk antrean dirty dan sort harus menulis ulang yang sudah disediakan SQL | |
+| Tidak dipilih: Drift | Secara teknis paling kuat untuk catatan | Setup `build_runner` dan migrasi ke `Table`/`Companion` tidak sebanding untuk 1 tabel | |
 
-  // Method untuk mengambil daftar komentar berdasarkan postId
-  Future<List<Comment>> fetchComments(int postId) async {
-    final response = await _dio.get<List>(
-      '/comments',
-      queryParameters: {'postId': postId},
-      // Mengatur opsi timeout khusus untuk request ini selama 10 detik
-      options: Options(
-        sendTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ),
-    );
+Kapan pilihan catatan harus berubah ke Drift: kalau ditambah tabel `tags` atau `folders` (relasi), atau UI harus update otomatis tanpa `invalidate`. Kalau yang dinilai adalah "paling modern dan type-safe", Drift lebih mudah dipertahankan di presentasi. Kalau yang dinilai adalah kesesuaian dengan codelab, sqflite. Pilihan sqflite di sini mengikuti tujuan di README. [Kemungkinan Besar] itu yang dinilai, karena tertulis eksplisit di tujuan.
 
-    final data = response.data ?? [];
+Temuan tambahan: `PrefsRepository` memakai `SharedPreferences.getInstance()`. Dokumentasi menyebut API legacy itu "will be deprecated in the future" dan menyarankan `SharedPreferencesAsync` atau `SharedPreferencesWithCache` untuk pengguna baru. [Pasti] Belum rusak, tapi sebaiknya sekalian diganti.
 
-    // Mapping response data JSON menjadi List<Comment>
-    return data
-        .whereType<Map<String, dynamic>>()
-        .map(Comment.fromJson)
-        .toList();
-  }
-}
+#### 3. Trade-off per Pilihan
+
+**SharedPreferences.** Setup nol dan cepat untuk nilai kecil. Dokumentasinya sendiri menyatakan plugin ini tidak untuk data penting, dan hanya mendukung tipe primitif plus `List<String>`. Memasukkan 1000 catatan sebagai JSON ke satu key membuat setiap perubahan menulis ulang seluruh blob. [Pasti]
+
+**Hive.** Cepat untuk objek sederhana dan punya stream. Harganya: tidak ada query, tidak ada relasi, dan adapter harus dijaga kompatibel kalau field berubah. Paket `hive` asli sudah lama tidak aktif dan `hive_ce` adalah penerusnya yang drop-in. [Kemungkinan Besar] untuk status paket asli, karena halaman yang dibaca tidak menyebutnya. Sisa `hive_generator` di folder `.dart_tool` menandakan pernah dicoba, tapi tidak ada di `pubspec.yaml`, jadi tidak berpengaruh.
+
+**sqflite.** Kontrol penuh dan ringan. Risikonya: query berupa string, mapping manual, dan tidak ada migrasi otomatis. Setiap perubahan skema harus ditulis sendiri di `onUpgrade`. SQLite juga tidak bisa mengubah tipe kolom lewat `ALTER`, jadi perubahan seperti `updated_at` TEXT menjadi INTEGER butuh rebuild tabel (lihat bagian 5).
+
+**Drift.** Mengatasi semua kelemahan sqflite di tabel kriteria. Biayanya: 4 paket, file `.g.dart` hasil generate, dan kurva belajar DSL tabel. Untuk satu tabel `notes`, biaya itu belum terbayar. [Kemungkinan Besar]
+
+#### 4. Skema untuk 1000+ Catatan (sqflite)
+
+```sql
+CREATE TABLE notes(
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  uuid       TEXT    NOT NULL UNIQUE,   -- id stabil untuk sync (id integer bisa bentrok antar perangkat)
+  title      TEXT    NOT NULL,
+  body       TEXT    NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,          -- epoch ms UTC, bukan string lokal
+  updated_at INTEGER NOT NULL,          -- epoch ms UTC, juga dipakai sebagai versi di markSynced
+  deleted_at INTEGER,                   -- NULL = aktif; terisi = tombstone, agar penghapusan ikut tersinkron
+  dirty      INTEGER NOT NULL DEFAULT 0 CHECK (dirty IN (0,1))
+);
+
+-- Daftar utama: hanya catatan aktif, urut terbaru. Partial index jadi kecil.
+CREATE INDEX idx_notes_list  ON notes(updated_at DESC, id DESC) WHERE deleted_at IS NULL;
+-- Antrean sync: hanya baris dirty. countDirty() cukup membaca index ini.
+CREATE INDEX idx_notes_dirty ON notes(updated_at) WHERE dirty = 1;
 ```
 
-Error Helper & Providers (`lib/data/providers/comment_providers.dart`)
-```
-import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/comment.dart';
-import '../repositories/comment_repository.dart';
+Query layar daftar dengan keyset pagination. Ambil `substr(body,1,120)` saja, bukan seluruh body:
 
-final dioProvider = Provider<Dio>((ref) {
-  return Dio(
-    BaseOptions(
-      baseUrl: 'https://jsonplaceholder.typicode.com',
-      connectTimeout: const Duration(seconds: 10),
-    ),
-  );
-});
-
-final commentRepositoryProvider = Provider<CommentRepository>((ref) {
-  return CommentRepository(ref.watch(dioProvider));
-});
-
-String getFriendlyErrorMessage(Object error) {
-  if (error is DioException) {
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return 'Koneksi lambat. Silakan periksa jaringan Anda dan coba lagi.';
-      case DioExceptionType.connectionError:
-        return 'Gagal terhubung ke server. Pastikan koneksi internet Anda aktif.';
-      case DioExceptionType.badResponse:
-        final statusCode = error.response?.statusCode;
-        if (statusCode == 404) {
-          return 'Data komentar tidak ditemukan (404).';
-        } else if (statusCode == 500) {
-          return 'Terjadi masalah pada server (500). Silakan coba lagi nanti.';
-        }
-        return 'Terjadi kesalahan pada server ($statusCode).';
-      default:
-        return 'Terjadi kesalahan jaringan yang tidak terduga.';
-    }
-  }
-  return 'Terjadi kesalahan: ${error.toString()}';
-}
-
-final commentListProvider =
-    FutureProvider.family<List<Comment>, int>((ref, postId) async {
-  final repo = ref.watch(commentRepositoryProvider);
-  return repo.fetchComments(postId);
-});
+```dart
+// Halaman berikutnya: kursor = (updated_at, id) baris terakhir di layar.
+// Pakai bentuk OR, bukan row-value ((a,b) < (?,?)), karena SQLite bawaan
+// Android lama (< 3.15) tidak mendukung row-value.
+final rows = await db.rawQuery('''
+  SELECT id, title, substr(body, 1, 120) AS snippet, updated_at
+  FROM notes
+  WHERE deleted_at IS NULL
+    AND (updated_at < ? OR (updated_at = ? AND id < ?))
+  ORDER BY updated_at DESC, id DESC
+  LIMIT 30
+''', [lastUpdatedAt, lastUpdatedAt, lastId]);
 ```
 
-Unit Test: `Comment.fromJson` (`test/comment_test.dart`)
+Hapus catatan menjadi update, bukan `DELETE`:
+
+```dart
+await db.update('notes',
+  {'deleted_at': nowMs, 'updated_at': nowMs, 'dirty': 1},
+  where: 'id = ?', whereArgs: [id]);
+// Baris fisik baru dihapus (purge) setelah server mengonfirmasi penghapusan.
 ```
-import 'package:flutter_test/flutter_test.dart';
-import 'package:week_4_networking_rest_api/data/models/comment.dart';
 
-void main() {
-  group('Comment Model Test', () {
-    test('fromJson harus mengembalikan instance Comment dengan nilai default saat field hilang/null', () {
-      final Map<String, dynamic> incompleteJson = {
-        'id': 10,
-        'name': 'John Doe',
-      };
+Kalau memakai Hive, bentuk "kotaknya": `Box<Note>('notes')` dengan key `uuid`, nilai `Note{title, body, createdAt, updatedAt, deletedAt, dirty}`. Daftar terurut harus dibangun sendiri di memori dari `box.values`, tanpa index. Itu alasan Hive tidak dipilih.
 
-      final comment = Comment.fromJson(incompleteJson);
+#### 5. Hasil Verifikasi
 
-      expect(comment.id, equals(10));
-      expect(comment.name, equals('John Doe'));
-      expect(comment.postId, equals(0));
-      expect(comment.email, equals(''));
-      expect(comment.body, equals(''));
+Skema dan migrasi di atas dijalankan di SQLite 3.45.1 dengan 5.000 baris (body 1.500 karakter, 2% tombstone, 1% dirty). Angka berasal dari laptop, bukan perangkat Android, jadi dipakai sebagai perbandingan relatif saja.
+
+| Query | Query plan | Waktu |
+|---|---|---|
+| Skema lama, `fetchNotes()` (`SELECT *` semua baris) | `SCAN notes` + `USE TEMP B-TREE FOR ORDER BY` | 20,0 ms |
+| Skema baru, halaman 30 (keyset) | `SCAN ... USING INDEX idx_notes_list` | 0,07 ms |
+| `fetchDirty()` dan `countDirty()` | memakai `idx_notes_dirty` (count: `COVERING INDEX`) | tidak diukur |
+| `LIKE '%kata%'` pada title dan body | full scan | 9,8 ms |
+
+Dua catatan agar tidak overclaim di laporan:
+
+- Pada 1000 baris, skema lama tidak rusak. Masalahnya baru terasa di puluhan ribu baris, atau saat `body` panjang karena semuanya dimuat ke memori dan ke UI thread. Skema ini lebih tepat disebut desain yang tahan skala, bukan perbaikan yang terukur di 1000 baris. [Pasti]
+- Pencarian `LIKE` sekitar 10 ms di 5.000 baris, cukup untuk target ini, jadi FTS tidak perlu. FTS5 tidak direkomendasikan karena belum bisa dipastikan SQLite bawaan Android lama menyertakannya. [Menebak]
+
+Migrasi v1 ke v2 (`onUpgrade`) diuji pada skema v1 persis seperti `db.dart`, dan `integrity_check` hasilnya `ok`:
+
+```dart
+onUpgrade: (db, oldV, newV) async {
+  if (oldV < 2) {
+    await db.transaction((txn) async {
+      // SQLite tak bisa ALTER tipe kolom, jadi rename -> buat ulang -> salin -> hapus
+      await txn.execute('ALTER TABLE notes RENAME TO notes_old');
+      // ... CREATE TABLE notes + 2 index dari bagian 4 ...
+      await txn.execute('''
+        INSERT INTO notes(id, uuid, title, body, created_at, updated_at, dirty)
+        SELECT id, lower(hex(randomblob(16))), title, body,
+               CAST(strftime('%s', updated_at) AS INTEGER) * 1000,
+               CAST(strftime('%s', updated_at) AS INTEGER) * 1000, dirty
+        FROM notes_old
+      ''');
+      await txn.execute('DROP TABLE notes_old');
     });
-
-    test('Edge Case: fromJson harus menangani objek JSON yang seluruh nilainya null/salah tipe', () {
-      final Map<String, dynamic> corruptedJson = {
-        'postId': null,
-        'id': 'bukan_angka',
-        'name': null,
-        'email': 12345, // Mengkonversi angka 12345 menjadi string '12345'
-        'body': null,
-      };
-
-      final comment = Comment.fromJson(corruptedJson);
-
-      expect(comment.postId, equals(0));
-      expect(comment.id, equals(0));
-      expect(comment.name, equals(''));
-      expect(comment.email, equals('12345')); // Ubah dari '' menjadi '12345'
-      expect(comment.body, equals(''));
-    });
-  });
-}
+  }
+},
 ```
+
+Dua catatan untuk migrasi ini. Milidetik hilang karena `strftime('%s')` hanya presisi detik. Teks lama tanpa `Z` dibaca sebagai UTC, jadi data lama bisa bergeser sesuai zona waktu perangkat (WIB = 7 jam). Untuk data uji tidak masalah, tapi kalau ada pengguna sungguhan, pergeseran itu nyata.
+
+### AI Verification Checklist
+1. Apakah AI menempatkan daftar catatan di SharedPreferences?
+    - Tidak, daftar catatan ditempatkan menggunakan sqflite.
+    -  SharedPreferences hanya ditugaskan untuk mengelola data preferensi aplikasi, seperti tema dan data terakhir yang dibuka.  
+    - AI secara eksplisit menolak menyimpan catatan di SharedPreferences karena menyimpan 1000 catatan dalam format JSON pada satu key akan memaksa penulisan ulang seluruh blob data pada setiap perubahan.  
+
+2. Apakah skema AI mendukung antrean sync (dirty flag / updated_at) atau hanya CRUD polos?
+    - Skema tersebut mendukung sistem antrean sync penuh.   
+    - AI mendesain skema dengan kolom dirty dan updated_at untuk memantau perubahan data.   
+    - Skema menghindari penghapusan permanen (hard delete) dengan menambahkan kolom deleted_at sebagai tombstone.   
+    - Metode tombstone ini memastikan bahwa instruksi penghapusan diubah menjadi update sehingga tetap tercatat dalam antrean sinkronisasi menuju server. 
+
+3. Apakah klaim "real-time" AI didukung stream (Drift/watch) atau hanya asumsi?
+    - AI tidak membuat asumsi palsu mengenai real-time; AI menyatakan secara lugas bahwa pilihan akhirnya (sqflite) tidak memiliki dukungan stream bawaan.   
+    - Pembaruan UI otomatis mengharuskan pengembang melakukan invalidate provider secara manual pada sqflite.   
+    - AI mengakui bahwa fitur stream bawaan otomatis (seperti metode .watch()) hanya ada pada Drift dan Hive
+
+4. Apakah estimasi boilerplate AI masuk akal setelah Anda mencoba instalasinya?
+    - Ya, estimasi boilerplate yang disajikan sangat rasional.   AI menempatkan Drift sebagai paket dengan boilerplate awal paling besar karena membutuhkan instalasi empat paket tambahan serta konfigurasi build_runner.
+    - AI menilai beban instalasi Drift tersebut tidak sepadan jika aplikasinya hanya memiliki satu tabel catatan.   
+    - Sementara itu, sqflite dikategorikan memiliki boilerplate menengah karena pengembang harus menulis fungsi mapping data secara manual.  
+
+5. Keputusan final Anda beserta alasannya.
+    - sqflite menjadi pilihan final untuk tabel catatan karena mendukung penuh kebutuhan logika offline-first berbasis SQL, meliputi query `ORDER BY`, penyaringan flag `dirty`, dan eksekusi transaksi. sqflite juga sejalan dengan instruksi utama di README proyek.
+    - Preferensi (SharedPreferences): Versi `SharedPreferencesWithCache` direkomendasikan karena efektif untuk menyimpan dua key primitif tanpa berisiko menyebabkan layar berkedip saat memuat tema di awal startup.
+    - Alasan Penolakan Drift: Terlalu banyak kerumitan penyiapan (kebutuhan codegen) hanya untuk mengelola satu tabel tanpa relasi.
+    - Alasan Penolakan Hive: Hive hanya memuat kotak data di memori tanpa fungsi query bawaan, sehingga pengurutan dan pencarian antrean dirty harus ditulis dan diproses secara manual oleh pengembang.
+
+
+
 
 ## Dokumentasi Refactoring dan testing
 
