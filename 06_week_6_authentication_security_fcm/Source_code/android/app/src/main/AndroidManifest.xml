@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Wajib di Android 13+ (API 33) supaya notifikasi bisa tampil -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="_06_week_6_authentication_security_fcm"
+        android:label="Campus Notify"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

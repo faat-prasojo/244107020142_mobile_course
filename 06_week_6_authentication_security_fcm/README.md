@@ -1,17 +1,23 @@
-# _06_week_6_authentication_security_fcm
+# Minggu 5 - Local Storage Offline First
 
-A new Flutter project.
+**Nama:** Faatihurrizki Prasojo
 
-## Getting Started
+**NIM:** 244107020142
 
-This project is a starting point for a Flutter application.
+## Tujuan 
+- Menjelaskan alur autentikasi (Firebase Auth / JWT / OAuth / Google Login) dan perbedaan ID token vs access token vs refresh token;
+- Menyimpan token secara aman dengan secure storage serta menerapkan token refresh otomatis;
+- Menjelaskan arsitektur FCM: app server, Firebase, dan perangkat;
+- Meminta notification permission dan mengelola token lifecycle (`getToken`, `onTokenRefresh`);
+- Membedakan notification payload vs data payload serta perilakunya pada state foreground, background, dan terminated;
+- Menangani klik notifikasi (deep link dengan GoRouter) dan topic messaging;
+- Menerapkan prinsip keamanan dasar aplikasi mobile (tidak menyimpan secret di kode, tidak log token).
 
-A few resources to get you started if this is your first Flutter project:
+#### Dokumentasi Praktikum
+| Autentikasi & FCM Token | Home | Notifikasi | Isi Pengumuman |
+| :---: | :---: |:---: | :---: |
+| <img src="./Screenshot/sample1.jpeg" width="400"> | <img src="./Screenshot/sample2.jpeg" width="400"> | <img src="./Screenshot/sample3.jpeg" width="400"> |  <img src="./Screenshot/sample4.jpeg" width="400"> |
+|Tampilan antarmuka login dan halaman utama setelah autentikasi berhasil, menampilkan FCM token unik perangkat untuk pengujian push notification. | Tampilan awal setelah berhasil login, ada token untuk mengubungkan antara firebase dengan aplikasi mobile yang sedang dijalankan  | Banner notifikasi sistem muncul pada status bar ketika aplikasi diminimalkan (ditekan tombol Home) saat pesan FCM diterima. | Halaman detail pengumuman (/pengumuman/:id) yang langsung terbuka setelah banner notifikasi diklik, menampilkan ID pengumuman, judul, dan isi pesan notifikasi lengkap. |
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## AI Challenge 
