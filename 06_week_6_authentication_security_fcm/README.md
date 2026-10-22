@@ -359,11 +359,9 @@ Token FCM bisa berganti, misalnya saat app di-install ulang, data dihapus, atau 
 
 #### 4. Bagian mana dari draf AI yang ditolak atau diperbaiki, dan mengapa?
 
-> Isi bagian ini hanya dengan perubahan yang benar-benar kamu lakukan dan kamu uji sendiri. Berikut yang terjadi di proyekku:
-
 - **Banner foreground dengan SnackBar → diganti `flutter_local_notifications`.** SnackBar hanya tampil di dalam app, padahal checklist mensyaratkan notifikasi sistem. Setelah diganti, banner muncul di bar notifikasi saat app terbuka.
 - **`data.route` dipakai langsung → diberi whitelist.** Payload FCM berasal dari luar app, jadi hanya `/home` dan `/announcement` yang diterima. Selain itu diarahkan ke `/announcement`.
-- **`getToken` dan `onTokenRefresh` ditandai deprecated → tidak dimigrasi.** Pengganti `onRegistered` memancarkan FID, bukan FCM token, dan efeknya ke uji dari Console belum terbukti. Warning dibungkam dengan `ignore_for_file` dan alasannya dicatat.
+- **`getToken` dan `onTokenRefresh` ditandai deprecated → tidak dimigrasi.** Pengganti `onRegistered` memancarkan FID, bukan FCM token, dan efeknya ke uji dari Console belum terbukti.  
 - **`POST /devices` → baru berupa callback, belum request nyata.** Belum ada backend, jadi token hanya dicatat dalam log (di-mask).
 - **Dio interceptor dengan refresh-on-401 → tidak dibuat.** Sesi dikelola Firebase Auth lewat `idTokenChanges()`.
 - **Tes bawaan `widget_test.dart` → dihapus.** Tes itu untuk aplikasi counter dan otomatis gagal setelah `main.dart` diganti.
