@@ -19,6 +19,6 @@ Berikut adalah daftar materi dan tugas yang dikerjakan setiap minggunya. Klik ta
 | **04** | Networking & REST API | ✅ Selesai | [Buka Tugas](./04_week_4_networking_rest_api) |
 | **05** | API & Asynchronous Programming | ✅ Selesai | [Buka Tugas](./05_week_5_local_storage_offline_first) |
 | **06** | Authentication Security FCM | ✅ Selesai | [Buka Tugas](./06_week_6_authentication_security_fcm) |
-| **07** | UTS Project | ⏳ Pending | - |
+| **07** | Clean Architecture | ✅ Selesai | [Buka Tugas](./07_week_7_clean_architecture) |
 | **08** | Firebase Authentication | ⏳ Pending | - |
 | **...** | *Topik selanjutnya menyusul* | ⏳ Pending | - |

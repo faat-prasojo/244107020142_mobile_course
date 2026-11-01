@@ -1,37 +1,37 @@
 # Week 7 — Clean Architecture
 
-Proyek Praktikum Week 7: Implementasi **Clean Architecture (Feature-First)** pada aplikasi Flutter (`clean_notes_app`).
+Proyek Praktikum Week 7: Penerapan konsep **Clean Architecture (Feature-First)** pada pengembangan aplikasi Flutter (`clean_notes_app`).
 
 ---
 
 ## 1. Tujuan Pembelajaran
 
-Setelah menyelesaikan modul praktikum ini, mahasiswa mampu:
+Setelah mengikuti dan menyelesaikan praktikum ini, mahasiswa diharapkan dapat:
 
-- Menjelaskan prinsip **SOLID** dan *Separation of Concerns* dengan contoh kode nyata di Flutter.
-- Membedakan struktur arsitektur **feature-first** vs **layer-first** beserta analisis *trade-off*-nya.
-- Mengimplementasikan tiga layer utama (**Presentation**, **Domain**, **Data**) dan mematuhi aturan emas dependensi (*Dependency Rule*: dependensi hanya mengarah ke dalam).
-- Membedakan peran **Entity** murni vs **Model** data, serta fungsi **Repository Interface**, **Use Case**, dan **Dependency Injection (DI)**.
-- Merefaktor proyek berbasis penyimpanan lokal/offline-first menjadi struktur *feature-first Clean Architecture*.
-- Menguji domain dan *use case* secara independen menggunakan **repository palsu (Fake Repository)** tanpa database atau jaringan fisik.
-- Membuktikan sterilitas layer melalui verifikasi *static analysis* dan pencarian pola (*ripgrep sterility checks*).
+- Memahami konsep **SOLID** dan *Separation of Concerns* serta penerapannya melalui kode Flutter.
+- Mengetahui perbedaan pendekatan arsitektur **feature-first** dan **layer-first**, termasuk kelebihan serta kekurangan masing-masing.
+- Membangun tiga lapisan utama, yaitu **Presentation**, **Domain**, dan **Data**, sesuai aturan dependensi (*Dependency Rule*) yang mengharuskan arah dependensi menuju bagian inti.
+- Memahami perbedaan fungsi **Entity** sebagai objek bisnis dan **Model** sebagai representasi data, serta kegunaan **Repository Interface**, **Use Case**, dan **Dependency Injection (DI)**.
+- Melakukan perubahan struktur aplikasi penyimpanan lokal (*offline-first*) menjadi arsitektur Clean Architecture dengan pendekatan *feature-first*.
+- Melakukan pengujian pada domain dan *use case* secara terpisah menggunakan **Fake Repository**, tanpa membutuhkan koneksi database maupun jaringan secara langsung.
+- Memastikan setiap layer telah sesuai dengan aturan arsitektur melalui *static analysis* dan pemeriksaan pola menggunakan *ripgrep*.
 
 ---
 
-## 2. Arsitektur & Diagram Layer
+## 2. Arsitektur dan Diagram Layer
 
-Aplikasi menerapkan **Clean Architecture** dengan pendekatan **Feature-First**. Setiap fitur mengisolasi ketiga layernya sendiri, dengan aturan dependensi yang ketat:
+Pada aplikasi ini, Clean Architecture diterapkan menggunakan pola **Feature-First**, yaitu setiap fitur mempunyai susunan tiga layer secara mandiri. Setiap lapisan memiliki tanggung jawab masing-masing dan mengikuti ketentuan arah dependensi.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     PRESENTATION LAYER                      │
 │     (Pages, Widgets, Riverpod Providers, Notifiers)        │
 └──────────────────────────────┬──────────────────────────────┘
-                               │ bergantung ke (imports)
+                               │ bergantung pada (imports)
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        DOMAIN LAYER                         │
-│       (Entities, Repository Interfaces, Use Cases, Failures) │
+│       (Entities, Repository Interfaces, Use Cases, Failures)│
 │                ★ THE CORE — PURE DART ★                    │
 └──────────────────────────────▲──────────────────────────────┘
                                │ diimplementasikan oleh
@@ -42,17 +42,21 @@ Aplikasi menerapkan **Clean Architecture** dengan pendekatan **Feature-First**. 
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Aturan Kunci (The Golden Dependency Rule)
-1. **Domain adalah Pusat Bisnis (The Core)**: Ditulis murni dalam bahasa Dart tanpa dependensi framework Flutter UI, package SQLite, SharedPreferences, Dio, maupun Firebase.
-2. **Dependensi Mengarah ke Dalam**: Presentation bergantung pada abstraksi Domain. Data layer mengimplementasikan kontrak Domain.
-3. **Entity vs Model**: Entity di `domain/entities` murni objek bisnis tanpa fungsi serialisasi. Model di `data/models` menangani konversi `toMap()`, `fromMap()`, dan `.toEntity()`.
-4. **Dependency Injection**: Penyuntikan dependensi diatur terpusat melalui Riverpod Provider (`notes_providers.dart` & `settings_providers.dart`). Widget tidak pernah melakukan instansiasi manual (`new Repository()`).
+### Aturan Utama (The Golden Dependency Rule)
+
+1. **Domain sebagai Inti Logika Bisnis (The Core)**: Domain ditulis menggunakan Dart murni dan tidak memiliki ketergantungan terhadap framework Flutter UI, SQLite, SharedPreferences, Dio, maupun Firebase.
+
+2. **Arah Dependensi ke Dalam**: Presentation hanya berkomunikasi dengan abstraksi yang tersedia pada Domain, sedangkan Data bertugas menyediakan implementasi dari kontrak yang telah ditentukan Domain.
+
+3. **Perbedaan Entity dan Model**: Entity yang berada di `domain/entities` berfungsi sebagai representasi objek bisnis tanpa proses serialisasi. Sementara itu, Model pada `data/models` bertanggung jawab menangani konversi data melalui `toMap()`, `fromMap()`, dan `.toEntity()`.
+
+4. **Dependency Injection**: Pengelolaan serta penyediaan dependensi dilakukan secara terpusat menggunakan Riverpod Provider (`notes_providers.dart` dan `settings_providers.dart`). Dengan demikian, widget tidak perlu membuat objek repository secara langsung menggunakan `new Repository()`.
 
 ---
 
 ## 3. Struktur Proyek (Feature-First)
 
-```
+```text
 07-week-7-clean-architecture/
 ├── lib/
 │   ├── main.dart                                   # Entry point + ProviderScope + tema
@@ -96,7 +100,7 @@ Aplikasi menerapkan **Clean Architecture** dengan pendekatan **Feature-First**. 
 │           │   └── usecases/
 │           │       ├── get_settings.dart           # UseCase: Ambil preferensi
 │           │       └── toggle_theme_mode.dart      # UseCase: Ganti tema gelap/terang
-│           ├── data/                               # DATA LAYER
+│           ├── data/
 │           │   └── repositories/
 │           │       └── settings_repository_impl.dart # Implementasi SharedPreferences
 │           └── presentation/                       # PRESENTATION LAYER
@@ -109,7 +113,7 @@ Aplikasi menerapkan **Clean Architecture** dengan pendekatan **Feature-First**. 
 │   ├── format_test.dart                            # Pengujian fungsi murni format & parse
 │   ├── get_notes_test.dart                         # Pengujian GetNotes dengan Fake Repo
 │   ├── note_test.dart                              # Pengujian NoteModel & DI Riverpod
-│   ├── settings_test.dart                          # Pengujian domain Settings & toggle
+│   ├── settings_test.dart                           # Pengujian domain Settings & toggle
 │   └── widget_test.dart                            # Placeholder widget test
 ├── docs/
 │   └── AI_CHALLENGE.md                             # Dokumentasi evaluasi AI & trade-offs
@@ -119,110 +123,134 @@ Aplikasi menerapkan **Clean Architecture** dengan pendekatan **Feature-First**. 
 
 ---
 
-## 4. Stack Teknologi
+## 4. Teknologi yang Digunakan
 
-| Komponen | Paket / Teknologi | Fungsi dalam Arsitektur |
+| Komponen | Paket / Teknologi | Peran dalam Aplikasi |
 |---|---|---|
-| Framework | Flutter SDK 3.x / Dart 3.x | Framework UI & logika aplikasi |
-| State Management & DI | `flutter_riverpod ^3.4.3` | Dependency Injection & reaktivitas state UI |
-| Routing Declarative | `go_router ^18.0.2` | Navigasi deklaratif berbasis path |
-| Relational Database | `sqflite ^2.4.4` | Penyimpanan lokal persisten tabel `notes` |
-| Web Database Engine | `sqflite_common_ffi_web ^1.2.0` | Kompatibilitas SQLite di browser |
-| Key-Value Storage | `shared_preferences ^2.5.5` | Penyimpanan preferensi tema & riwayat aplikasi |
-| Testing Toolkit | `flutter_test`, `sqflite_common_ffi` | Unit testing murni usecase & model |
+| Framework | Flutter SDK 3.x / Dart 3.x | Digunakan untuk membangun antarmuka dan menjalankan logika aplikasi. |
+| State Management & DI | `flutter_riverpod ^3.4.3` | Mengatur state aplikasi sekaligus menangani Dependency Injection. |
+| Routing Declarative | `go_router ^18.0.2` | Mengelola perpindahan halaman menggunakan sistem navigasi berbasis path. |
+| Relational Database | `sqflite ^2.4.4` | Menyimpan data catatan secara permanen pada tabel lokal `notes`. |
+| Web Database Engine | `sqflite_common_ffi_web ^1.2.0` | Mendukung penggunaan SQLite melalui browser. |
+| Key-Value Storage | `shared_preferences ^2.5.5` | Menyimpan pengaturan tema dan riwayat penggunaan aplikasi. |
+| Testing Toolkit | `flutter_test`, `sqflite_common_ffi` | Membantu menjalankan pengujian unit pada use case dan model. |
 
 ---
 
-## 5. Praktikum 1: Audit Layer & Tiga Pelanggaran Klasik
+## 5. Praktikum 1: Audit Layer dan Tiga Pelanggaran Klasik
 
-### 1. Tabel Audit Pemetaan File Lama ke Layer
-Sebelum refactor, struktur file lama diaudit untuk mengidentifikasi kebocoran *concerns*:
+### 1. Hasil Audit dan Pemetaan File Lama ke Layer
 
-| File Lama | Layer Lama | Masalah yang Ditemukan | Aksi Refactoring |
+Sebelum proses refactoring dilakukan, struktur aplikasi sebelumnya diperiksa terlebih dahulu. Tujuannya adalah menemukan bagian kode yang masih mencampurkan beberapa tanggung jawab (*Separation of Concerns*).
+
+| File Lama | Layer Lama | Permasalahan | Tindakan Refactoring |
 |---|---|---|---|
-| `pages/notes_page.dart` | Presentation | Menjalankan logika database di dialog, format tanggal mentah di UI, dan memicu reload manual. | Dipindah ke `features/notes/presentation/pages/notes_page.dart`. Aksi dialihkan via UseCase. |
-| `pages/note_detail_page.dart` | Presentation | Memanggil method repository langsung tanpa pemisahan state yang rapi. | Dipindah ke `features/notes/presentation/pages/note_detail_page.dart` menggunakan `noteDetailProvider(id)`. |
-| `data/local/note.dart` | Data / Domain | Objek bisnis dan serialisasi database (`toMap`, `fromMap`) bersatu dalam 1 kelas. | Dipecah menjadi Entity murni `Note` di domain dan `NoteModel` di data layer. |
-| `data/local/db.dart` | Data | Terbuka global di `data/`. | Dipusatkan ke datasource `features/notes/data/datasources/notes_database.dart`. |
-| `data/repositories/note_repository.dart` | Data | Interface dan implementasi menyatu, tidak ada kontrak abstract yang dapat di-mock. | Dipecah menjadi interface `NoteRepository` di domain dan `NoteRepositoryImpl` di data. |
-| `data/prefs.dart` | Data | Digunakan langsung oleh Notifier tanpa pemisahan kontrak domain. | Direfaktor ke interface `SettingsRepository` (domain) dan `SettingsRepositoryImpl` (data). |
+| `pages/notes_page.dart` | Presentation | Masih terdapat proses database di dalam dialog, pemformatan tanggal dilakukan langsung pada UI, serta pemuatan ulang data secara manual. | Dipindahkan ke `features/notes/presentation/pages/notes_page.dart`. Seluruh proses operasi diarahkan melalui UseCase. |
+| `pages/note_detail_page.dart` | Presentation | Halaman masih mengakses method repository secara langsung dan belum mempunyai pengelolaan state yang terstruktur. | Dipindahkan ke `features/notes/presentation/pages/note_detail_page.dart` dengan memanfaatkan `noteDetailProvider(id)`. |
+| `data/local/note.dart` | Data / Domain | Data bisnis dan fungsi serialisasi database (`toMap`, `fromMap`) masih digabung dalam satu kelas. | Dipisahkan menjadi Entity `Note` pada domain dan `NoteModel` pada data layer. |
+| `data/local/db.dart` | Data | Pengelolaan database masih berada pada folder `data/` secara umum. | Dipindahkan ke datasource `features/notes/data/datasources/notes_database.dart`. |
+| `data/repositories/note_repository.dart` | Data | Kontrak repository dan implementasinya masih menjadi satu, sehingga belum tersedia interface abstrak yang mudah di-mock. | Dipisahkan menjadi interface `NoteRepository` di domain dan `NoteRepositoryImpl` di data. |
+| `data/prefs.dart` | Data | Notifier masih menggunakan penyimpanan preferensi secara langsung tanpa melalui abstraksi domain. | Diubah menjadi interface `SettingsRepository` pada domain dan implementasi `SettingsRepositoryImpl` pada data. |
 
 ---
 
-## 6. Verifikasi Sterilitas & Hasil Pengujian
+## 6. Pemeriksaan Sterilitas Layer dan Hasil Pengujian
 
-### 1. Hasil 3 Pemeriksaan Sterilitas Layer (Ripgrep Checks)
+### 1. Hasil Tiga Pemeriksaan Sterilitas (Ripgrep Checks)
 
-Sesuai instruksi modul praktikum, ketiga pemeriksaan sterilitas dijalankan untuk membuktikan kepatuhan terhadap *Dependency Inversion Principle* dan *The Golden Dependency Rule*. Ketiga pemeriksaan wajib menghasilkan **NOL HASIL (0 Matches / Steril Total)**:
+Mengacu pada ketentuan modul praktikum, dilakukan tiga jenis pemeriksaan untuk memastikan penerapan **Dependency Inversion Principle** dan **The Golden Dependency Rule** telah sesuai.
 
-#### Pemeriksaan 1: Presentation Steril dari Akses Data Mentah & Database
-Pemeriksaan ini memastikan tidak ada widget atau halaman UI yang memanggil koneksi database, HTTP client, local storage, atau melakukan decoding JSON langsung.
+Ketiga pemeriksaan tersebut ditargetkan menghasilkan **NOL HASIL (0 Matches / Steril Total)**.
 
-- **Perintah:**
+#### Pemeriksaan 1: Presentation Tidak Mengakses Data Mentah dan Database
+
+Pengujian pertama bertujuan memastikan bahwa halaman maupun widget tidak melakukan akses langsung terhadap koneksi database, HTTP client, penyimpanan lokal, ataupun proses decoding JSON.
+
+- **Perintah yang dijalankan:**
+
   ```bash
   rg "Dio\(|openDatabase|getDatabasesPath|FlutterSecureStorage|SharedPreferences\.getInstance|jsonDecode" lib/features/*/presentation lib/pages
   ```
-- **Hasil Eksekusi Terminal:**
+
+- **Hasil dari Terminal:**
+
   ```text
   0 matches found (Steril Total - Lolos)
   ```
-- **Keterangan Teknis:** Seluruh akses penyimpanan SQLite dan preferensi lokal telah diisolasi di layer Data (`NoteRepositoryImpl` dan `SettingsRepositoryImpl`). Widget pada Presentation layer hanya membaca state dari Provider Riverpod dan memicu operasi melalui Use Case.
+
+- **Penjelasan:** Seluruh proses yang berhubungan dengan SQLite dan penyimpanan preferensi telah ditempatkan pada Data layer, melalui `NoteRepositoryImpl` dan `SettingsRepositoryImpl`. Sementara itu, komponen pada Presentation hanya bertugas mengambil informasi state melalui Riverpod Provider serta menjalankan operasi menggunakan UseCase.
 
 ---
 
-#### Pemeriksaan 2: Domain Steril dari Framework & Package Luar
-Pemeriksaan ini memastikan bahwa seluruh logika bisnis di `domain` dan `core` murni ditulis dalam bahasa Dart murni (*Pure Dart*), tanpa dependensi terhadap framework Flutter UI, SQLite, HTTP Dio, maupun Firebase.
+#### Pemeriksaan 2: Domain Tidak Bergantung pada Framework atau Package Eksternal
 
-- **Perintah:**
+Pemeriksaan kedua dilakukan untuk mengetahui apakah seluruh logika bisnis pada folder `domain` dan `core` sudah menggunakan Dart murni (*Pure Dart*), tanpa mengimpor framework Flutter UI, SQLite, Dio, maupun Firebase.
+
+- **Perintah yang dijalankan:**
+
   ```bash
   rg "import 'package:flutter|import 'package:dio|import 'package:sqflite|import 'package:firebase" lib/features/*/domain lib/core
   ```
-- **Hasil Eksekusi Terminal:**
+
+- **Hasil dari Terminal:**
+
   ```text
   0 matches found (Steril Total - Lolos)
   ```
-- **Keterangan Teknis:** Layer domain (`entities`, `repositories`, `usecases`) dan core (`failures.dart`, `format.dart`) sepenuhnya independen dari teknologi eksternal, sehingga aturan bisnis dapat diuji 100% menggunakan unit test tanpa membutuhkan runtime Flutter atau emulator database.
+
+- **Penjelasan:** Seluruh bagian domain, termasuk `entities`, `repositories`, dan `usecases`, serta folder core yang berisi `failures.dart` dan `format.dart`, tidak memiliki keterikatan dengan package eksternal. Kondisi tersebut membuat aturan bisnis bisa diuji secara mandiri melalui unit test tanpa menjalankan Flutter maupun emulator database.
 
 ---
 
-#### Pemeriksaan 3: Tidak Ada Instansiasi Manual (DI Bocor) di UI Widget
-Pemeriksaan ini memastikan bahwa widget pada Presentation layer tidak membuat instansiasi objek repository secara manual (`new Repository()`), melainkan mengandalkan penyuntikan dependensi terpusat (*Dependency Injection*).
+#### Pemeriksaan 3: Tidak Ada Pembuatan Repository Secara Manual pada UI (DI Bocor)
 
-- **Perintah:**
+Pemeriksaan terakhir digunakan untuk memastikan bahwa komponen Presentation tidak membuat objek repository sendiri menggunakan `new Repository()`. Seluruh dependensi harus diperoleh melalui mekanisme Dependency Injection yang telah disediakan.
+
+- **Perintah yang dijalankan:**
+
   ```bash
   rg "Repository\(|Dio\(BaseOptions" lib/features/*/presentation/pages lib/features/*/presentation/widgets
   ```
-- **Hasil Eksekusi Terminal:**
+
+- **Hasil dari Terminal:**
+
   ```text
   0 matches found (Steril Total - Lolos)
   ```
-- **Keterangan Teknis:** Seluruh dependensi disuntikkan terpusat melalui Riverpod Provider (`notes_providers.dart` dan `settings_providers.dart`). Widget UI hanya mengonsumsi provider menggunakan `ref.watch()` atau `ref.read()`.
+
+- **Penjelasan:** Penyediaan seluruh dependensi sudah dikelola melalui Riverpod Provider yang terdapat pada `notes_providers.dart` dan `settings_providers.dart`. Dengan begitu, widget hanya menggunakan `ref.watch()` atau `ref.read()` untuk mendapatkan dependensi yang diperlukan.
 
 ---
 
-### 2. Static Analysis (`flutter analyze`)
-Pemeriksaan kode statis memastikan kode bersih dari error tipe, peringatan linting, maupun unused variables:
+### 2. Pemeriksaan Static Analysis (`flutter analyze`)
+
+Proses *static analysis* dilakukan untuk memeriksa kualitas kode, termasuk kemungkinan kesalahan tipe data, masalah linting, dan variabel yang tidak digunakan.
 
 ```bash
 flutter analyze
 ```
 
 **Hasil Eksekusi Terminal:**
+
 ```text
-Analyzing 07-week-7-clean-architecture...                       
+Analyzing 07-week-7-clean-architecture...
 No issues found! (ran in 3.0s)
 ```
 
+Hasil tersebut menunjukkan bahwa proses analisis berhasil diselesaikan tanpa menemukan masalah pada kode aplikasi.
+
 ---
 
-### 3. Eksekusi Unit Test (`flutter test`)
-Pengujian unit dijalankan untuk menguji Entity, Model, Use Case dengan Fake Repository, Helper format murni, dan Riverpod Provider:
+### 3. Pelaksanaan Unit Test (`flutter test`)
+
+Pengujian unit dilakukan untuk memverifikasi fungsi Entity, Model, Use Case dengan Fake Repository, helper format, serta integrasi Riverpod Provider.
 
 ```bash
 flutter test
 ```
 
 **Hasil Eksekusi Terminal:**
+
 ```text
 00:00 +0: C:/.../test/add_note_test.dart: AddNote UseCase Test (Validation & Domain Logic) Gagal validasi jika judul kosong atau hanya spasi
 00:00 +1: C:/.../test/add_note_test.dart: AddNote UseCase Test (Validation & Domain Logic) Berhasil menyimpan catatan dengan judul valid dan melakukan trim
@@ -242,70 +270,98 @@ flutter test
 00:00 +15: C:/.../test/widget_test.dart: placeholder
 00:00 +16: All tests passed!
 ```
-Seluruh **16 unit test lulus 100%**.
+
+Berdasarkan hasil tersebut, seluruh **16 unit test berhasil dijalankan tanpa kegagalan (100% lulus)**.
 
 ---
 
 ## 7. Bukti Tangkapan Layar (Screenshots)
 
-Berikut tabel perbandingan komparatif antarmuka aplikasi **Before (Week 5: Struktur Monolitik / Layer-First)** dan **After (Week 7: Clean Architecture Feature-First)**, serta bukti eksekusi pengujian:
+Bagian ini memperlihatkan perbandingan tampilan aplikasi sebelum dan sesudah proses refactoring. Perbandingan dilakukan antara **Before (Week 5: Struktur Monolitik / Layer-First)** dan **After (Week 7: Clean Architecture Feature-First)**, sekaligus menampilkan hasil pengujian aplikasi.
 
-| Fitur / Halaman | Before (Week 5: Layer-First / Monolith) | After (Week 7: Clean Architecture Feature-First) | Penjelasan Perubahan & Refactoring |
+| Fitur / Halaman | Before (Week 5: Layer-First / Monolith) | After (Week 7: Clean Architecture Feature-First) | Perubahan yang Dilakukan |
 | :---: | :---: | :---: | :--- |
-| **1. Halaman Utama Catatan** | ![Before Halaman Utama](screenshots/note-page.png) | ![After Halaman Utama](screenshots/note.png) | **Before:** Tampilan tab monolitik sederhana dengan pemanggilan query database langsung di UI.<br><br>**After:** Tampilan modern Deep Teal dengan Dashboard Status Clean Architecture, pencarian catatan real-time, badge entitas domain, dan tab interaktif visualisasi 3 layer. Data dimuat melalui `GetNotes` usecase dan Riverpod `notesProvider`. |
-| **2. Dialog Tambah Catatan** | ![Before Tambah Catatan](screenshots/tambah-note.png) | ![After Tambah Catatan](screenshots/tambah.png) | **Before:** Dialog langsung mengeksekusi insert query ke SQLite tanpa validasi layer bisnis.<br><br>**After:** Dialog memanggil `AddNote` usecase. Validasi input (judul tidak boleh kosong, trimming spasi) ditangani oleh domain layer sebelum menyentuh SQLite, memberikan pesan kegagalan yang ramah pengguna. |
-| **3. Detail & Edit Catatan** | ![Before Edit Catatan](screenshots/edit-note.png) | ![After Edit Catatan](screenshots/edit.png) | **Before:** Form edit catatan standar tanpa pemisahan model dan entity bisnis.<br><br>**After:** Dilengkapi metadata card entity (`Entity #ID`, `Pure Dart Entity`, status SQLite, timestamp) dan pembaruan data diproses via `UpdateNote` usecase. |
-| **4. Pengaturan & Preferensi** | ![Before Pengaturan](screenshots/setting-dark-mode.png) | ![After Pengaturan](screenshots/setting.png) | **Before:** Preferensi tema disimpan langsung via `SharedPreferences.getInstance()` di state UI.<br><br>**After:** Fitur kedua (`features/settings`) dengan struktur Clean Architecture lengkap (`SettingsRepository`, `GetSettings`, `ToggleThemeMode`). UI steril dari instance storage mentah. |
-| **5. Antarmuka Tema Gelap (Dark Mode)** | ![Before Dark Mode](screenshots/setting-dark-mode.png) | ![After Dark Mode](screenshots/dark%20mode.png) | **Before:** Tampilan tema gelap sederhana dengan kontras bawaan.<br><br>**After:** Desain tema gelap bernuansa Deep Slate & Emerald Teal yang modern, terintegrasi mulus dengan `darkModeProvider` dan Material 3. |
+| **1. Halaman Utama Catatan** | ![Before Halaman Utama](screenshots/note-page.png) | ![After Halaman Utama](screenshots/note.png) | **Before:** Antarmuka masih menggunakan tampilan tab monolitik sederhana dan proses query database dilakukan langsung dari UI. <br><br> **After:** Tampilan diperbarui dengan desain Deep Teal yang dilengkapi Dashboard Status Clean Architecture, fitur pencarian catatan secara real-time, badge entitas domain, serta tab interaktif untuk melihat visualisasi tiga layer. Pengambilan data kini menggunakan `GetNotes` usecase melalui Riverpod `notesProvider`. |
+| **2. Dialog Tambah Catatan** | ![Before Tambah Catatan](screenshots/tambah-note.png) | ![After Tambah Catatan](screenshots/tambah.png) | **Before:** Proses penyimpanan catatan masih menjalankan query insert SQLite langsung dari dialog tanpa pemeriksaan aturan bisnis. <br><br> **After:** Penambahan catatan dilakukan melalui `AddNote` usecase. Domain layer menangani validasi input, seperti pemeriksaan judul kosong dan penghapusan spasi berlebih sebelum data diteruskan ke SQLite. Pengguna juga memperoleh pesan kesalahan yang lebih mudah dipahami. |
+| **3. Detail dan Edit Catatan** | ![Before Edit Catatan](screenshots/edit-note.png) | ![After Edit Catatan](screenshots/edit.png) | **Before:** Halaman pengeditan masih berupa form standar dan belum memisahkan model data dari entity bisnis. <br><br> **After:** Halaman dilengkapi kartu informasi entity yang menampilkan `Entity #ID`, `Pure Dart Entity`, status SQLite, dan timestamp. Proses perubahan catatan dilakukan melalui `UpdateNote` usecase. |
+| **4. Pengaturan dan Preferensi** | ![Before Pengaturan](screenshots/setting-dark-mode.png) | ![After Pengaturan](screenshots/setting.png) | **Before:** Pengaturan tema masih disimpan dengan memanggil `SharedPreferences.getInstance()` secara langsung dari state UI. <br><br> **After:** Pengaturan dipisahkan menjadi fitur tersendiri pada `features/settings` dengan susunan Clean Architecture yang terdiri dari `SettingsRepository`, `GetSettings`, dan `ToggleThemeMode`. Dengan demikian, UI tidak lagi mengakses penyimpanan secara langsung. |
+| **5. Tampilan Dark Mode** | ![Before Dark Mode](screenshots/setting-dark-mode.png) | ![After Dark Mode](screenshots/dark%20mode.png) | **Before:** Mode gelap masih menggunakan tampilan sederhana dengan kontras warna bawaan. <br><br> **After:** Tampilan diperbarui menggunakan kombinasi warna Deep Slate dan Emerald Teal agar terlihat lebih modern. Pengaturan tema juga sudah terhubung dengan `darkModeProvider` dan Material 3. |
 
-### Bukti Pengujian Statis & Unit Test
+### Bukti Hasil Pengujian Static Analysis dan Unit Test
 
-| Jenis Pengujian | Bukti Tangkapan Layar | Status & Keterangan |
+| Jenis Pengujian | Bukti Tangkapan Layar | Hasil dan Keterangan |
 | :---: | :---: | :--- |
-| **Flutter Analyze & Flutter Test** | ![Hasil Test & Analyze](screenshots/hasil-test-analyze.png) | **100% Lolos Tanpa Isu:** `flutter analyze` bersih (*No issues found!*) dan seluruh 16 unit test usecase, model, format helper, dan provider lulus (*All tests passed!*). |
+| **Flutter Analyze & Flutter Test** | ![Hasil Test & Analyze](screenshots/hasil-test-analyze.png) | **Berhasil 100%:** Pemeriksaan `flutter analyze` tidak menemukan masalah (*No issues found!*). Selain itu, seluruh 16 pengujian yang mencakup usecase, model, format helper, dan provider berhasil dilewati (*All tests passed!*). |
 
 ---
 
 ## 8. Refleksi Praktikum
 
-### 1. Mengapa interface repository harus tinggal di domain, bukan di data? Apa yang rusak bila dibalik?
-Sesuai dengan **Dependency Inversion Principle (DIP)** dan aturan dependensi Clean Architecture, layer tingkat tinggi (*high-level domain*) yang memuat aturan bisnis tidak boleh bergantung pada layer tingkat rendah (*low-level data*).
-- **Kontrak adalah milik Domain**: Domain menentukan *apa* data yang dibutuhkannya (misal: `fetchNotes()`), bukan *bagaimana* data tersebut diambil.
-- **Apa yang rusak jika dibalik?**: Jika interface repository diletakkan di layer `data`, maka layer `domain` harus mengimpor layer `data` agar bisa memanggil kontrak tersebut. Akibatnya terjadi pelanggaran arah dependensi (panah dependensi mengarah keluar, bukan ke dalam). Jika implementasi database diganti (misal dari SQLite ke Firestore), perubahan di data layer berpotensi merusak domain, dan domain tidak lagi bisa diuji secara murni (*unit testable*) tanpa mengimpor pustaka pihak ketiga.
+### 1. Mengapa interface repository sebaiknya berada di domain, bukan data? Apa dampaknya jika posisinya dibalik?
 
-### 2. Kapan use case benar-benar dibutuhkan, dan kapan repository langsung ke notifier sudah cukup?
-- **Use case benar-benar dibutuhkan ketika**:
-  1. Terdapat **logika bisnis, validasi, atau transformasi data** spesifik sebelum operasi dilakukan (contohnya: `AddNote` yang memvalidasi bahwa judul tidak boleh kosong dan melakukan pemangkasan spasi).
-  2. Terjadi **orkestrasi antar beberapa sumber data** (contoh: membaca dari SQLite lokal lalu memperbarui sinkronisasi ke REST API).
-  3. Membutuhkan pengujian unit murni yang independen terhadap satu alur tugas bisnis (*single responsibility testing*).
-- **Repository langsung ke Notifier sudah cukup ketika**:
-  - Operasi hanya berupa pembacaan sederhana (*simple pass-through*) tanpa manipulasi atau validasi tambahan (contoh: mengambil data berdasarkan ID atau menghitung jumlah item). Memaksakan Use Case satu baris untuk operasi semacam ini hanya memicu *boilerplate code* yang berlebihan tanpa nilai tambah teknis.
+Penempatan interface repository di dalam domain merupakan bagian dari penerapan **Dependency Inversion Principle (DIP)** serta aturan dependensi pada Clean Architecture. Prinsip ini mengatur agar bagian yang memiliki tanggung jawab terhadap aturan bisnis tidak bergantung secara langsung pada bagian teknis yang menangani penyimpanan data.
 
-### 3. Apa biaya over-engineering (use case per CRUD satu-baris) bagi tim kecil? Kapan biayanya sepadan?
-- **Biaya Over-Engineering bagi Tim Kecil**:
-  - **Boilerplate Explosion**: Jumlah file meningkat drastis (untuk satu operasi sederhana dibutuhkan modifikasi di 4–5 file berbeda: entity, model, interface, impl, use case, provider).
-  - **Kecepatan Pengembangan Melambat (*Velocity Drop*)**: Waktu yang dihabiskan untuk membuat kelas pembungkus lebih banyak daripada menulis fitur nyata.
-  - **Beban Kognitif Tinggi**: Navigasi kode dan pelacakan alur eksekusi menjadi rumit bagi pengembang baru.
-- **Kapan Biayanya Sepadan?**:
-  - Pada aplikasi skala enterprise dengan puluhan modul dan banyak pengembang yang bekerja secara simultan pada fitur yang sama.
-  - Ketika aturan bisnis sering berubah dan sangat ketat, sehingga pemisahan use case mencegah konflik *merge Git* dan mengisolasi potensi bug regresi.
+- **Domain Menentukan Kontrak:** Domain bertugas menetapkan kebutuhan data yang diperlukan oleh aplikasi, misalnya melalui fungsi `fetchNotes()`. Domain hanya menentukan data apa yang dibutuhkan tanpa harus mengetahui proses pengambilannya.
 
-### 4. Bagian mana dari usulan AI yang Anda tolak atau sederhanakan, dan mengapa?
-Dalam sesi evaluasi AI Challenge:
-1. **Menolak pembungkusan seluruh operasi satu baris ke dalam Use Case terpisah**: AI sempat mengusulkan membuat use case `CountDirtyNotes`, `GetNoteById`, dan `MarkAllSyncedNotes`. Usulan ini ditolak karena operasi tersebut murni *pass-through* tanpa logika bisnis tambahan. Notifier dapat langsung memanggil abstraksi `NoteRepository`.
-2. **Menolak penempatan pembuka database di `core/`**: AI sempat menaruh fungsi pembuka database di `lib/core/db.dart`. Usulan ini diperbaiki dengan memindahkannya ke `lib/features/notes/data/datasources/notes_database.dart` karena perintah verifikasi sterilitas menuntut `lib/core` bebas dari impor package database/framework.
-3. **Penyempurnaan Penanganan Kesalahan (Failures vs Exception)**: AI awalnya membiarkan error database melempar `Exception` mentah ke UI. Diperbaiki dengan mengonversi seluruh kegagalan menjadi sealed class `Failure` (`LocalFailure`, `NetworkFailure`, `ValidationFailure`) dengan pesan bahasa Indonesia yang ramah pengguna.
+- **Dampak Jika Penempatan Dibalik:** Apabila interface repository justru diletakkan di data layer, domain harus mengimpor bagian data untuk dapat menggunakan kontrak tersebut. Hal ini menyebabkan arah dependensi menjadi tidak sesuai dengan prinsip Clean Architecture. Selain itu, ketika teknologi penyimpanan diganti, misalnya SQLite beralih ke Firestore, perubahan pada data layer dapat memengaruhi domain. Akibatnya, domain kehilangan independensinya dan pengujian unit tidak lagi bisa dilakukan secara murni tanpa melibatkan package pihak ketiga.
 
+### 2. Dalam kondisi apa Use Case diperlukan, dan kapan repository dapat langsung digunakan oleh notifier?
 
-# Dokumentasi AI Challenge: Arsitektur & Reorganisasi Clean Architecture
+- **Use Case diperlukan apabila:**
 
-Dokumen ini mencatat evaluasi terhadap usulan AI Coding Assistant dalam merefaktor proyek Flutter menjadi **Feature-First Clean Architecture**, analisis *trade-off*, penilaian *over-engineering*, serta keputusan teknis final yang diterapkan.
+  1. **Terdapat aturan bisnis atau validasi tertentu.** Contohnya pada `AddNote`, ketika sistem perlu memastikan judul catatan tidak kosong dan menghilangkan spasi yang tidak diperlukan sebelum data disimpan.
+
+  2. **Melibatkan beberapa sumber data sekaligus.** Sebagai contoh, aplikasi harus mengambil data dari SQLite lokal kemudian mengoordinasikan proses sinkronisasi dengan REST API.
+
+  3. **Membutuhkan pengujian logika bisnis secara terpisah.** Use Case memungkinkan setiap alur bisnis diuji secara independen tanpa harus melibatkan keseluruhan aplikasi.
+
+- **Repository dapat langsung digunakan oleh Notifier apabila:**
+
+  Operasi yang dijalankan hanya berupa proses sederhana (*simple pass-through*) tanpa memerlukan validasi maupun pengolahan data tambahan. Misalnya, mengambil catatan berdasarkan ID atau menghitung jumlah item. Pada kondisi seperti ini, penggunaan Use Case yang hanya berisi satu baris kode justru menambah struktur kode yang tidak terlalu diperlukan (*boilerplate*) tanpa memberikan manfaat teknis yang berarti.
+
+### 3. Apa saja dampak over-engineering akibat penggunaan Use Case satu baris untuk setiap CRUD pada tim kecil? Kapan penerapannya layak dilakukan?
+
+- **Dampak Over-Engineering pada Tim Kecil:**
+
+  - **Jumlah Boilerplate Bertambah:** Struktur proyek menjadi semakin banyak file. Bahkan untuk satu operasi sederhana, pengembang dapat harus membuat atau mengubah beberapa bagian, seperti entity, model, interface, implementasi repository, use case, dan provider.
+  
+  - **Proses Pengembangan Menjadi Lebih Lambat:** Waktu pengerjaan lebih banyak digunakan untuk membuat kelas pembungkus dibandingkan mengembangkan fungsi utama aplikasi.
+
+  - **Kompleksitas Pemahaman Meningkat:** Pengembang baru membutuhkan waktu lebih lama untuk memahami susunan file dan mengikuti alur proses dari satu komponen ke komponen lainnya.
+
+- **Kapan Penerapannya Menjadi Seimbang dengan Biayanya?**
+
+  - Pada aplikasi berskala enterprise yang mempunyai banyak modul serta melibatkan sejumlah pengembang dalam pengerjaan fitur secara bersamaan.
+  
+  - Ketika aturan bisnis cukup kompleks dan sering mengalami perubahan. Pemisahan Use Case dapat membantu mengurangi konflik saat proses *merge Git* serta membatasi dampak perubahan agar tidak menimbulkan bug pada bagian lain.
+
+### 4. Rekomendasi AI apa yang tidak digunakan atau disederhanakan, dan apa alasannya?
+
+Pada proses evaluasi AI Challenge, terdapat beberapa saran dari AI Coding Assistant yang tidak diterapkan sepenuhnya karena perlu disesuaikan dengan kebutuhan serta struktur proyek.
+
+1. **Tidak Membuat Use Case Terpisah untuk Semua Operasi Sederhana**
+
+   AI sempat menyarankan pembuatan beberapa Use Case, seperti `CountDirtyNotes`, `GetNoteById`, dan `MarkAllSyncedNotes`. Saran tersebut tidak seluruhnya diterapkan karena fungsi-fungsi tersebut hanya meneruskan pemanggilan repository tanpa mengandung aturan bisnis tambahan. Oleh sebab itu, Notifier dapat langsung menggunakan abstraksi `NoteRepository`.
+
+2. **Memindahkan Database Opener dari Folder Core**
+
+   Pada awalnya, AI memberikan usulan untuk menempatkan fungsi pembuka database di `lib/core/db.dart`. Namun, pendekatan tersebut diubah dengan menempatkan file database pada `lib/features/notes/data/datasources/notes_database.dart`. Keputusan ini diambil karena core harus tetap bebas dari ketergantungan terhadap package database maupun framework eksternal agar pemeriksaan sterilitas dapat terpenuhi.
+
+3. **Memperbaiki Pengelolaan Error Menggunakan Failure**
+
+   Implementasi awal dari AI masih memungkinkan kesalahan database diteruskan ke UI dalam bentuk `Exception` mentah. Bagian tersebut kemudian diperbaiki dengan mengelompokkan jenis kesalahan ke dalam sealed class `Failure`, yaitu `LocalFailure`, `NetworkFailure`, dan `ValidationFailure`. Setiap kegagalan dapat ditampilkan menggunakan pesan berbahasa Indonesia yang lebih mudah dimengerti pengguna.
+
+---
+
+# Dokumentasi AI Challenge: Arsitektur dan Reorganisasi Clean Architecture
+
+Dokumentasi ini berisi hasil peninjauan terhadap rekomendasi AI Coding Assistant selama proses perubahan struktur proyek Flutter menjadi **Feature-First Clean Architecture**. Pembahasan meliputi pertimbangan teknis, perbandingan *trade-off*, identifikasi over-engineering, serta alasan di balik keputusan akhir yang digunakan dalam proyek.
 
 ---
 
 ## 1. AI Prompt Challenge
 
-Prompt yang diajukan ke AI Coding Assistant:
+Berikut merupakan prompt yang diberikan kepada AI Coding Assistant untuk membantu proses evaluasi dan perancangan ulang struktur proyek:
 
 ```text
 Project Flutter saya: campus_notify / offline_notes.
@@ -325,56 +381,87 @@ Jelaskan trade-off setiap keputusan.
 
 ## 2. Pemetaan File Lama ke Struktur Baru (File Migration Matrix)
 
-| File Lama | Layer Lama | Status & Tujuan Baru | Alasan Teknis |
+Tabel berikut memperlihatkan perubahan lokasi file dari struktur sebelumnya menuju susunan Clean Architecture yang baru, beserta pertimbangan teknis di balik setiap perubahan.
+
+| File Lama | Layer Lama | Status dan Lokasi Baru | Pertimbangan Teknis |
 |---|---|---|---|
-| `data/local/note.dart` | Data (Tercampur) | **Dipecah** menjadi:<br>1. `features/notes/domain/entities/note.dart`<br>2. `features/notes/data/models/note_model.dart` | Entity di domain harus murni Dart bisnis tanpa method serialisasi (`toMap`/`fromMap`). Serialisasi adalah urutan data luar yang diisolasi di model. |
-| `data/local/db.dart` | Data | **Pindah** ke `features/notes/data/datasources/notes_database.dart` | Inisialisasi SQLite adalah implementasi teknis data layer, tidak boleh bocor ke core atau domain. |
-| `data/repositories/note_repository.dart` | Data (Kontrak tercampur) | **Dipecah** menjadi:<br>1. `features/notes/domain/repositories/note_repository.dart` (Interface)<br>2. `features/notes/data/repositories/note_repository_impl.dart` (Implementasi) | Mematuhi *Dependency Inversion Principle (DIP)*. Kontrak abstrak milik domain, implementasi milik data layer. |
-| `data/prefs.dart` | Data | **Dipecah** menjadi:<br>1. `features/settings/domain/repositories/settings_repository.dart`<br>2. `features/settings/data/repositories/settings_repository_impl.dart` | Mengisolasi SharedPreferences ke repository implementasi sehingga presentation tidak memanggil `SharedPreferences.getInstance()` langsung. |
-| `pages/notes_page.dart` | Presentation | **Dipindah & Direfaktor** ke `features/notes/presentation/pages/notes_page.dart` | Disterilkan dari logika database langsung, query raw, dan dialog yang menginstansiasi repo. Seluruh akses dialihkan via Riverpod Provider & UseCase. |
-| `pages/note_detail_page.dart` | Presentation | **Dipindah & Direfaktor** ke `features/notes/presentation/pages/note_detail_page.dart` | State detail dibaca lewat `noteDetailProvider(id)` dan disimpan lewat `updateNoteProvider`. |
-| `pages/settings_page.dart` | Presentation | **Dipindah & Direfaktor** ke `features/settings/presentation/pages/settings_page.dart` | Menggunakan `darkModeProvider` dan `settingsInfoProvider` tanpa menyentuh storage mentah. |
-| `widgets/note_tile.dart` | Presentation | **Dipindah** ke `features/notes/presentation/widgets/note_tile.dart` | Formatting tanggal dipindahkan ke `lib/core/format.dart`. |
+| `data/local/note.dart` | Data (Tercampur) | **Dipisahkan** menjadi: <br>1. `features/notes/domain/entities/note.dart` <br>2. `features/notes/data/models/note_model.dart` | Entity pada domain hanya menyimpan informasi bisnis menggunakan Dart murni dan tidak menangani serialisasi seperti `toMap` atau `fromMap`. Proses serialisasi menjadi tanggung jawab model pada data layer. |
+| `data/local/db.dart` | Data | **Dipindahkan** ke `features/notes/data/datasources/notes_database.dart` | Proses inisialisasi SQLite termasuk bagian teknis pengelolaan data sehingga harus berada di data layer, bukan pada core atau domain. |
+| `data/repositories/note_repository.dart` | Data (Kontrak tercampur) | **Dipisahkan** menjadi: <br>1. `features/notes/domain/repositories/note_repository.dart` (Interface) <br>2. `features/notes/data/repositories/note_repository_impl.dart` (Implementasi) | Pemisahan dilakukan untuk menerapkan *Dependency Inversion Principle (DIP)*, yaitu kontrak repository menjadi tanggung jawab domain, sedangkan proses implementasinya berada di data layer. |
+| `data/prefs.dart` | Data | **Dipisahkan** menjadi: <br>1. `features/settings/domain/repositories/settings_repository.dart` <br>2.`features/settings/data/repositories/settings_repository_impl.dart` | Penggunaan SharedPreferences diisolasi melalui repository implementasi. Dengan demikian, presentation tidak perlu mengakses `SharedPreferences.getInstance()` secara langsung. |
+| `pages/notes_page.dart` | Presentation | **Dipindahkan dan Direfaktor** ke `features/notes/presentation/pages/notes_page.dart` | Halaman dibersihkan dari query database, pengelolaan data mentah, dan proses pembuatan repository secara langsung. Operasi data selanjutnya dijalankan melalui Riverpod Provider dan UseCase. |
+| `pages/note_detail_page.dart` | Presentation | **Dipindahkan dan Direfaktor** ke `features/notes/presentation/pages/note_detail_page.dart` | Informasi detail catatan diperoleh melalui `noteDetailProvider(id)`, sedangkan proses penyimpanannya dilakukan menggunakan `updateNoteProvider`. |
+| `pages/settings_page.dart` | Presentation | **Dipindahkan dan Direfaktor** ke `features/settings/presentation/pages/settings_page.dart` | Halaman pengaturan kini memanfaatkan `darkModeProvider` dan `settingsInfoProvider` tanpa mengakses penyimpanan secara langsung. |
+| `widgets/note_tile.dart` | Presentation | **Dipindahkan** ke `features/notes/presentation/widgets/note_tile.dart` | Proses pemformatan tanggal dipisahkan ke fungsi pada `lib/core/format.dart` agar tidak membebani komponen UI. |
 
 ---
 
 ## 3. Checklist Verifikasi AI (AI Verification Checklist)
 
-Berikut evaluasi kritis terhadap rekomendasi yang diajukan AI:
+Seluruh saran yang diberikan oleh AI Coding Assistant diperiksa kembali untuk memastikan kesesuaiannya dengan kebutuhan aplikasi dan prinsip Clean Architecture.
 
-| Item Checklist | Kriteria Evaluasi | Temuan & Keputusan Final |
+| Item Checklist | Standar Pemeriksaan | Hasil Evaluasi dan Keputusan |
 |---|---|---|
-| **Pemisahan Interface & Implementasi** | Interface wajib di `domain`, implementasi wajib di `data`. | **Diterima**. AI menempatkan interface `note_repository.dart` di `domain/repositories` dan implementasi `note_repository_impl.dart` di `data/repositories`. |
-| **Sterilitas Domain** | `domain` steril dari import framework (`flutter`, `sqflite`, `dio`, `firebase`). | **Diterima & Terverifikasi**. Hasil `grep_search` pada `lib/features/*/domain` dan `lib/core` membuktikan **0 hasil (steril total)**. |
-| **Pembersihan Entity** | Entity murni tanpa `toMap`, `fromMap`, `toJson`. | **Diterima**. `Note` dan `AppSettings` hanya berisi field bisnis dan constructor murni. Seluruh mapping ditempatkan di `NoteModel`. |
-| **Wiring DI Riverpod** | Wiring terpusat di Provider, UI tidak melakukan `new Repository()`. | **Diterima**. Seluruh widget `ConsumerWidget` hanya memakai `ref.watch`/`ref.read`. Repository disuntikkan dengan `openDb` function opener. |
-| **Use Case per CRUD satu-baris** | Menilai apakah setiap operasi satu baris membutuhkan Use Case tersendiri. | **Disaring / Dinilai Kritis**. AI sempat mengusulkan membuat kelas UseCase terpisah untuk *setiap operasi kecil* seperti `CountDirtyNotes`, `MarkAllSyncedNotes`, dan `GetNoteById`. Hal ini dinilai **over-engineering** (lihat analisis di bawah). |
+| **Pemisahan Interface dan Implementasi** | Interface harus ditempatkan di `domain`, sedangkan implementasinya berada di `data`. | **Diterapkan**. Interface `note_repository.dart` diletakkan pada `domain/repositories`, sementara `note_repository_impl.dart` berada di `data/repositories`. |
+| **Sterilitas Domain** | Folder `domain` tidak boleh mengimpor framework atau package seperti `flutter`, `sqflite`, `dio`, dan `firebase`. | **Diterapkan dan Terbukti**. Hasil pemeriksaan `grep_search` pada `lib/features/*/domain` dan `lib/core` menunjukkan **0 hasil**, sehingga kedua bagian tersebut dinyatakan steril. |
+| **Pemisahan Entity** | Entity tidak diperbolehkan memiliki method serialisasi seperti `toMap`, `fromMap`, atau `toJson`. | **Diterapkan**. Kelas `Note` dan `AppSettings` hanya memuat field bisnis serta constructor murni. Seluruh proses pemetaan data ditangani oleh `NoteModel`. |
+| **Wiring DI Riverpod** | Pengelolaan dependensi dilakukan melalui Provider dan UI tidak boleh membuat repository secara manual. | **Diterapkan**. Komponen `ConsumerWidget` menggunakan `ref.watch` atau `ref.read`, sedangkan repository diberikan melalui mekanisme dependency injection dengan fungsi `openDb`. |
+| **Use Case untuk Setiap CRUD Satu Baris** | Menilai apakah seluruh operasi sederhana perlu mempunyai Use Case masing-masing. | **Disesuaikan Setelah Evaluasi**. AI sempat merekomendasikan Use Case terpisah untuk operasi kecil seperti `CountDirtyNotes`, `MarkAllSyncedNotes`, dan `GetNoteById`. Rekomendasi ini dinilai berlebihan karena termasuk *over-engineering*. |
 
 ---
 
-## 4. Analisis Over-Engineering & Kapan Use Case Benar-Benar Dibutuhkan
+## 4. Analisis Over-Engineering dan Kondisi Penggunaan Use Case
 
-### Risiko Over-Engineering pada Tim Kecil / Fitur Sederhana
-Jika setiap CRUD sederhana satu baris dipaksakan memiliki UseCase tersendiri (misal: `CountDirtyNotes` yang hanya berisi `return repo.countDirty();`), terjadi ledakan jumlah file (*boilerplate explosion*):
-- Menambah waktu navigasi dan pencarian file.
-- Setiap perubahan tipe data memerlukan pembaruan di 4 file berbeda: Entity, Repository Interface, Use Case, dan Repository Impl.
-- Menurunkan kecepatan iterasi fitur pada tahap awal pengembangan (*development velocity* melambat).
+### Risiko Over-Engineering pada Tim Kecil atau Fitur Sederhana
 
-### Kapan Use Case Benar-Benar Dibutuhkan?
-1. **Memuat Logika Bisnis & Validasi**:
-   - Contoh: `AddNote` dan `UpdateNote` melakukan validasi judul tidak boleh kosong (`ValidationFailure`) dan pembersihan spasi (*trimming*) sebelum memanggil repository.
-2. **Orkestrasi Multi-Repository / Multi-Data Source**:
-   - Jika suatu proses membutuhkan interaksi antara SQLite lokal dan API sinkronisasi jarak jauh, Use Case bertindak sebagai orkestrator yang mengoordinasikan keduanya.
-3. **Pemberian Titik Pengujian Tunggal (*Isolated Unit Testing*)**:
-   - Logika bisnis dapat diuji secara independen dengan mock/fake repository tanpa memerlukan runtime Flutter atau emulator database.
+Membuat Use Case tersendiri untuk setiap operasi CRUD yang hanya terdiri dari satu baris kode, seperti `CountDirtyNotes` yang sekadar menjalankan `return repo.countDirty();`, dapat menyebabkan struktur proyek menjadi terlalu kompleks.
 
-### Kapan Repository Langsung ke Notifier Sudah Cukup?
-- Operasi baca sederhana (*pass-through read*) tanpa transformasi atau validasi tambahan (misalnya penghitungan jumlah atau detail item by ID). Notifier/Provider dapat langsung mengonsumsi abstraksi `NoteRepository` tanpa membungkusnya dalam kelas Use Case satu baris yang berlebihan.
+Beberapa dampak yang mungkin muncul antara lain:
+
+- **Jumlah File Semakin Banyak:** Pengembang harus membuka dan mengelola lebih banyak file hanya untuk menjalankan sebuah operasi sederhana.
+
+- **Perubahan Kode Menjadi Lebih Panjang:** Ketika terdapat perubahan pada tipe data, pengembang bisa perlu menyesuaikan beberapa bagian sekaligus, mulai dari Entity, Repository Interface, Use Case, hingga Repository Implementation.
+
+- **Kecepatan Pengembangan Berkurang:** Waktu pengerjaan fitur menjadi kurang efisien karena terlalu banyak proses yang harus dilakukan untuk operasi yang sebenarnya sederhana.
+
+### Kapan Use Case Sebaiknya Digunakan?
+
+1. **Ketika Terdapat Logika Bisnis dan Validasi**
+
+   Use Case dibutuhkan jika suatu proses harus melewati aturan tertentu sebelum data diproses oleh repository.
+
+   - Contoh: `AddNote` dan `UpdateNote` memeriksa agar judul tidak kosong menggunakan `ValidationFailure`, sekaligus membersihkan spasi yang tidak diperlukan (*trimming*) sebelum menyimpan data.
+
+2. **Ketika Membutuhkan Koordinasi Beberapa Repository atau Data Source**
+
+   Use Case dapat berfungsi sebagai pengatur alur ketika suatu proses melibatkan lebih dari satu sumber data.
+
+   - Contoh: Aplikasi mengambil data dari SQLite lokal dan kemudian melakukan koordinasi dengan API jarak jauh untuk proses sinkronisasi.
+
+3. **Ketika Memerlukan Pengujian Unit Secara Terisolasi**
+
+   Dengan memisahkan logika bisnis ke dalam Use Case, pengujian dapat dilakukan menggunakan mock atau Fake Repository tanpa perlu menjalankan aplikasi Flutter maupun emulator database.
+
+### Kapan Repository Dapat Langsung Digunakan oleh Notifier?
+
+Untuk operasi yang hanya melakukan pengambilan data sederhana (*pass-through read*) tanpa proses validasi atau transformasi tambahan, Notifier maupun Provider dapat langsung menggunakan abstraksi `NoteRepository`.
+
+Contohnya adalah mengambil informasi catatan berdasarkan ID atau menghitung jumlah data. Dalam kondisi tersebut, membuat Use Case satu baris hanya akan menambah kode yang tidak terlalu dibutuhkan.
 
 ---
 
 ## 5. Ringkasan Keputusan Teknis Final
 
-1. **Feature-First Organization**: Kode diorganisasikan per domain fitur (`features/notes` dan `features/settings`), bukan global layer-first, memastikan portabilitas dan isolasi perubahan.
-2. **Dart Records untuk Return Value**: Menggunakan record `({T? data, Failure? failure})` untuk penanganan hasil operasi yang eksplisit, aman, dan tanpa melempar runtime exception yang tidak tertangkap ke UI.
-3. **Ekstraksi Fungsi Murni**: Formatting tanggal dan parsing parameter rute diekstraksi ke `lib/core/format.dart` sehingga dapat diuji 100% dengan unit test tanpa dependensi UI.
+Berdasarkan hasil evaluasi terhadap struktur proyek dan rekomendasi AI, beberapa keputusan teknis berikut digunakan sebagai dasar implementasi akhir:
+
+1. **Pengorganisasian Feature-First**
+
+   Seluruh kode dikelompokkan berdasarkan fitur yang tersedia, yaitu `features/notes` dan `features/settings`, bukan berdasarkan layer secara global. Pendekatan ini membuat setiap fitur lebih terpisah dan memudahkan pengelolaan perubahan tanpa terlalu memengaruhi fitur lainnya.
+
+2. **Penggunaan Dart Records untuk Return Value**
+
+   Pengembalian hasil operasi menggunakan record `({T? data, Failure? failure})` agar informasi keberhasilan maupun kegagalan dapat disampaikan secara lebih terstruktur. Pendekatan ini juga mengurangi risiko runtime exception yang tidak tertangani dan diteruskan langsung ke UI.
+
+3. **Pemisahan Fungsi Murni**
+
+   Proses pemformatan tanggal dan penguraian parameter rute dipindahkan ke `lib/core/format.dart`. Dengan cara ini, fungsi tersebut bisa diperiksa menggunakan unit test secara mandiri tanpa bergantung pada komponen antarmuka aplikasi.
