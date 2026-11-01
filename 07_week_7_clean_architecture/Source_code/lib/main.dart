@@ -1,44 +1,116 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
-import 'firebase_options.dart';
-import 'messaging/push_service.dart';
-import 'router/app_router.dart';
+import 'features/settings/presentation/providers/settings_providers.dart';
+import 'routes.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase harus siap SEBELUM runApp, karena auth & FCM dipakai di halaman pertama.
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Handler background wajib didaftarkan di sini (fungsi top-level di push_service.dart).
-  // Di web tidak didukung lewat API ini (butuh service worker), jadi dilewati.
-  if (!kIsWeb) {
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
   }
 
-  runApp(const ProviderScope(child: MyApp()));
+  final container = ProviderContainer();
+  // Catat riwayat buka aplikasi via clean architecture settings repository
+  await container.read(settingsRepositoryProvider).markOpenedNow();
+
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const CleanNotesApp(),
+    ),
+  );
 }
 
-class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+class CleanNotesApp extends ConsumerWidget {
+  const CleanNotesApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
+    final darkModeAsync = ref.watch(darkModeProvider);
+    final isDark = darkModeAsync.value ?? false;
+
+    // Skema warna modern Deep Teal & Emerald yang khas Week 7 (Clean Architecture)
+    const seedColor = Color(0xFF0F766E); // Deep Teal
 
     return MaterialApp.router(
-      title: 'Campus Notify',
+      title: 'Clean Architecture Notes (Week 7)',
       debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: scaffoldMessengerKey,
-      routerConfig: router,
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: seedColor,
+          brightness: Brightness.light,
+          primary: const Color(0xFF0F766E),
+          surface: const Color(0xFFF8FAFC),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF1F5F9),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          color: Colors.white,
+        ),
+        appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          elevation: 0,
+          backgroundColor: Color(0xFF0F766E),
+          foregroundColor: Colors.white,
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.2,
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: const Color(0xFF0F766E),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 3,
+        ),
       ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: seedColor,
+          brightness: Brightness.dark,
+          surface: const Color(0xFF1E293B),
+        ),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withAlpha(25)),
+          ),
+          color: const Color(0xFF1E293B),
+        ),
+        appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          elevation: 0,
+          backgroundColor: Color(0xFF1E293B),
+          foregroundColor: Colors.white,
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.2,
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: const Color(0xFF14B8A6),
+          foregroundColor: Colors.black87,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 3,
+        ),
+      ),
+      routerConfig: appRouter,
     );
   }
 }

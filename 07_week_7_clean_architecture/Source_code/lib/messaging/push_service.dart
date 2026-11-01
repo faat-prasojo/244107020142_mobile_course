@@ -46,7 +46,7 @@ class PushService {
   GoRouter? _router;
   bool _started = false;
 
-  /// Token perangkat terbaru (untuk ditampilkan / disalin ke Firebase Console).
+  /// Firebase Installation ID perangkat.
   final ValueNotifier<String?> fcmToken = ValueNotifier(null);
 
   /// Pesan terakhir yang diterima atau diklik; dibaca AnnouncementPage.
@@ -70,17 +70,15 @@ class PushService {
 
     // Listener dipasang dulu, baru ambil token, supaya tidak ada pesan terlewat.
     _subs
-      ..add(FirebaseMessaging.onMessage.listen(_onForeground))
-      ..add(FirebaseMessaging.onMessageOpenedApp.listen(_open))
-      ..add(fm.onTokenRefresh.listen(_handleToken));
+    ..add(FirebaseMessaging.onMessage.listen(_onForeground))
+    ..add(FirebaseMessaging.onMessageOpenedApp.listen(_open))
+    ..add(fm.onRegistered.listen(_handleToken));
 
-    try {
-      final token = await fm.getToken();
-      if (token != null) await _handleToken(token);
-    } catch (e) {
-      // Umum terjadi di emulator tanpa Google Play Services / iOS tanpa APNs.
-      debugPrint('[FCM] getToken gagal: $e');
-    }
+  try {
+    await fm.register();
+  } catch (e) {
+    debugPrint('[FCM] register gagal: $e');
+  }
 
     // Subscribe topic tidak didukung di web.
     if (!kIsWeb) {
@@ -115,12 +113,15 @@ class PushService {
     _started = false;
   }
 
-  Future<void> _handleToken(String token) async {
-    fcmToken.value = token;
-    await _tokenStore.saveFcmToken(token);
-    // Tidak ada backend di tugas ini. Kalau nanti ada, kirim token baru ke
-    // endpoint (mis. POST /devices) DI SINI, karena onTokenRefresh juga lewat sini.
-    debugPrint('[FCM] token: ${maskToken(token)}');
+  Future<void> _handleToken(String installationId) async {
+    fcmToken.value = installationId;
+    // Menyimpan Firebase Installation ID ke penyimpanan lokal.
+    // Nama method dipertahankan agar tidak merusak kode yang sudah ada.
+    await _tokenStore.saveFcmToken(installationId);
+
+    debugPrint(
+      '[FCM] Installation ID: ${maskToken(installationId)}',
+    );
   }
 
   /// Foreground: Android tidak menampilkan banner sistem untuk notification
