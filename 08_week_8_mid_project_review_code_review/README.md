@@ -22,7 +22,7 @@ Arsitektur aplikasi **tidak berubah** dari Week 7: tiga layer dengan arah depend
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     PRESENTATION LAYER                      │
-│     (Pages, Widgets, Riverpod Providers, Notifiers)        │
+│     (Pages, Widgets, Riverpod Providers, Notifiers)         │
 └──────────────────────────────┬──────────────────────────────┘
                                │ bergantung pada (imports)
                                ▼
