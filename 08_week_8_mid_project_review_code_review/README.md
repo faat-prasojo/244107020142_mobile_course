@@ -6,8 +6,6 @@ Proyek Praktikum Week 8: **Mid Project Review & Code Review** terhadap aplikasi 
 
 ## 1. Tujuan Pembelajaran
 
-Setelah mengikuti dan menyelesaikan praktikum ini, mahasiswa diharapkan dapat:
-
 - Menjelaskan **Git Flow** dan strategi branching (`main`, `develop`, `feature/*`, `fix/*`).
 - Menulis commit dan Pull Request yang berkualitas dan mudah direview (format `tipe(scope): deskripsi`).
 - Melakukan **peer code review** yang konstruktif dengan pola *observasi → dampak → usulan konkret*.
