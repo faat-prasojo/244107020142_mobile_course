@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "70029010093",
+    "project_id": "week6-mobile-course",
+    "storage_bucket": "week6-mobile-course.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70029010093:android:8642777beeb0b4de735224",
+        "android_client_info": {
+          "package_name": "com.example.u_06_week_6_authentication_security_fcm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyJsJeJK-B1jl_XuUDejpo1JhaPPNudnc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,27 @@
+name: campus_notify_ai
+description: "Campus Notify — AI Campus Assistant (Praktikum Minggu 10)."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^5.0.0
+  firebase_auth: ^7.0.0
+  firebase_messaging: ^17.0.0
+  flutter_riverpod: ^3.4.3
+  go_router: ^18.1.1
+  flutter_secure_storage: ^11.2.0
+  http: ^1.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
