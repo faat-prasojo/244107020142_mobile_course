@@ -22,6 +22,6 @@ Berikut adalah daftar materi dan tugas yang dikerjakan setiap minggunya. Klik ta
 | **07** | Clean Architecture | ✅ Selesai | [Buka Tugas](./07_week_7_clean_architecture) |
 | **08** | Mid Project Review & Code Review | ✅ Selesai | [Buka Tugas](./08_week_8_mid_project_review_code_review) |
 | **09** | AI-Assisted Development / Vibe Coding | ✅ Selesai | [Buka Tugas](./09_week_9_ai_assisted_development_vibe_coding) |
-| **10** | Integrasi Fitur AI | ⏳ Pending | - |
+| **10** | Integrasi Fitur AI | ✅ Selesai | [Buka Tugas](./10_week_10_ai_feature_integration) |
 | **11** | Optimasi Performa | ⏳ Pending | - |
 
